@@ -18,6 +18,8 @@ Then open `http://localhost:5500`. (It needs to be served over http/https, not o
 - `style.css` — all styling, uses CSS custom properties defined in `:root`
 - `app.js` — a single IIFE module; no framework, no bundler. Keep it that way unless there's a strong reason to introduce one — part of the point of this project is that anyone can read the whole thing in one sitting
 - `vendor/pdf.min.mjs`, `vendor/pdf.worker.min.mjs` — pdf.js, vendored so there's no CDN dependency. Don't hand-edit these; if you need a newer version, re-download the matching pair from a pdf.js release and update both files together
+- `sound.js` — the ambient noise/nature sound engine (Web Audio API)
+- `library.js` — local library discovery via directory-listing scraping (see `library/README.md`)
 
 ## Before opening a PR
 
@@ -25,6 +27,7 @@ Then open `http://localhost:5500`. (It needs to be served over http/https, not o
 - Check both PDF and text-file (`.txt`/`.md`) modes if your change touches rendering or pagination
 - Check both spread and single-page view
 - If you touch the page-flip logic (`beginFlip`, `attachSlotDrag`, hover handling), test: click/keyboard nav, touch drag, and mouse/trackpad hover — including hovering near an edge right after a turn completes (there's a deliberate cooldown there to stop a single swipe from double-flipping; don't remove it without understanding why it's there)
+- If you touch `library.js`, test with an empty `library/` folder, a missing one, and one with a few files — and don't drop real books into your test to accidentally `git add`; `library/*` is gitignored except its README on purpose
 - Keep the "no backend, no build step, no database" constraint — that's a feature of this project, not an oversight
 
 ## Filing issues

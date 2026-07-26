@@ -5,3 +5,7 @@ Thumbs.db
 node_modules/
 .vscode/
 .idea/
+
+# personal library content stays local — don't publish anyone's books
+library/*
+!library/README.md

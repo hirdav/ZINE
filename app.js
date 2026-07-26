@@ -1,5 +1,6 @@
 import * as pdfjsLib from './vendor/pdf.min.mjs';
 import { SOUND_GROUPS, soundEngine } from './sound.js';
+import { scanLibrary } from './library.js';
 
 (() => {
   'use strict';
@@ -39,6 +40,11 @@ import { SOUND_GROUPS, soundEngine } from './sound.js';
   const soundVolume = document.getElementById('soundVolume');
   const soundGridNoise = document.getElementById('soundGridNoise');
   const soundGridNature = document.getElementById('soundGridNature');
+
+  const librarySection = document.getElementById('librarySection');
+  const libraryGrid = document.getElementById('libraryGrid');
+  const libraryEmpty = document.getElementById('libraryEmpty');
+  const libraryRefresh = document.getElementById('libraryRefresh');
 
   // ---------- State ----------
   const state = {
@@ -113,20 +119,7 @@ import { SOUND_GROUPS, soundEngine } from './sound.js';
     showLoading('reading pdf…');
     try {
       const buf = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: buf });
-      const pdf = await loadingTask.promise;
-      state.mode = 'pdf';
-      state.pdfDoc = pdf;
-      state.numPages = pdf.numPages;
-      state.textPages = [];
-      state.current = 1;
-      state.zoom = 1.0;
-      state.thumbsRendered = false;
-      clearPageCache();
-      docTitle.textContent = file.name;
-      openReader();
-      await flatRender();
-      buildThumbRailPlaceholders();
+      await loadPdfData(file.name, buf);
       hideLoading();
     } catch (err) {
       hideLoading();
@@ -138,24 +131,47 @@ import { SOUND_GROUPS, soundEngine } from './sound.js';
     showLoading('reading text…');
     try {
       const text = await file.text();
-      const pages = paginateText(text, CHARS_PER_PAGE);
-      state.mode = 'text';
-      state.pdfDoc = null;
-      state.textPages = pages;
-      state.numPages = pages.length;
-      state.current = 1;
-      state.zoom = 1.0;
-      state.thumbsRendered = false;
-      clearPageCache();
-      docTitle.textContent = file.name;
-      openReader();
-      await flatRender();
-      buildThumbRailPlaceholders();
+      loadTextData(file.name, text);
       hideLoading();
     } catch (err) {
       hideLoading();
       showError('could not read text file: ' + (err && err.message ? err.message : err));
     }
+  }
+
+  // core loaders — used both by direct file-picker/drop and by opening a
+  // library item fetched from the library/ folder
+  async function loadPdfData(name, arrayBuffer) {
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    state.mode = 'pdf';
+    state.pdfDoc = pdf;
+    state.numPages = pdf.numPages;
+    state.textPages = [];
+    state.current = 1;
+    state.zoom = 1.0;
+    state.thumbsRendered = false;
+    clearPageCache();
+    docTitle.textContent = name;
+    openReader();
+    await flatRender();
+    buildThumbRailPlaceholders();
+  }
+
+  function loadTextData(name, text) {
+    const pages = paginateText(text, CHARS_PER_PAGE);
+    state.mode = 'text';
+    state.pdfDoc = null;
+    state.textPages = pages;
+    state.numPages = pages.length;
+    state.current = 1;
+    state.zoom = 1.0;
+    state.thumbsRendered = false;
+    clearPageCache();
+    docTitle.textContent = name;
+    openReader();
+    flatRender();
+    buildThumbRailPlaceholders();
   }
 
   function paginateText(text, perPage) {
@@ -766,6 +782,117 @@ import { SOUND_GROUPS, soundEngine } from './sound.js';
 
   buildSoundPanel(loadSoundPrefs());
   updateSoundCardStates();
+
+  // ---------- Library ----------
+  const EXT_ICON = { pdf: '▤', txt: '☰', md: '☰' };
+  let libraryBusy = false;
+
+  async function initLibrary() {
+    libraryGrid.innerHTML = '';
+    libraryEmpty.classList.add('hidden');
+    const items = await scanLibrary();
+    if (items === null) {
+      librarySection.classList.add('hidden');
+      return;
+    }
+    librarySection.classList.remove('hidden');
+    if (!items.length) {
+      libraryEmpty.classList.remove('hidden');
+      return;
+    }
+    items.forEach((item, i) => renderLibraryCard(item, i));
+  }
+
+  function renderLibraryCard(item, index) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'library-card';
+    card.style.setProperty('--i', index);
+    card.title = item.title;
+
+    const cover = document.createElement('div');
+    cover.className = 'library-cover loading';
+    const badge = document.createElement('span');
+    badge.className = 'library-badge';
+    badge.textContent = item.ext.toUpperCase();
+    cover.appendChild(badge);
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'library-card-title';
+    titleEl.textContent = item.title;
+
+    card.appendChild(cover);
+    card.appendChild(titleEl);
+    libraryGrid.appendChild(card);
+
+    card.addEventListener('click', () => openLibraryItem(item, card));
+    generateLibraryCover(item, cover);
+  }
+
+  async function generateLibraryCover(item, coverEl) {
+    try {
+      if (item.ext === 'pdf') {
+        const res = await fetch(item.url, { cache: 'no-store' });
+        const buf = await res.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        const page = await pdf.getPage(1);
+        const vp = page.getViewport({ scale: 1 });
+        const scale = 220 / vp.width;
+        const viewport = page.getViewport({ scale });
+        const outputScale = window.devicePixelRatio || 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport, transform }).promise;
+        coverEl.insertBefore(canvas, coverEl.firstChild);
+      } else {
+        const res = await fetch(item.url, { cache: 'no-store' });
+        const text = await res.text();
+        const snippet = document.createElement('div');
+        snippet.className = 'library-text-preview';
+        snippet.textContent = text.slice(0, 260);
+        coverEl.insertBefore(snippet, coverEl.firstChild);
+      }
+    } catch (e) {
+      const fallback = document.createElement('div');
+      fallback.className = 'library-cover-fallback';
+      fallback.textContent = EXT_ICON[item.ext] || '▤';
+      coverEl.insertBefore(fallback, coverEl.firstChild);
+    }
+    coverEl.classList.remove('loading');
+  }
+
+  async function openLibraryItem(item, card) {
+    if (libraryBusy || flipBusy) return;
+    libraryBusy = true;
+    card.classList.add('opening');
+    clearError();
+    showLoading(`opening ${item.title}…`);
+    try {
+      const res = await fetch(item.url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`fetch failed (${res.status})`);
+      if (item.ext === 'pdf') {
+        const buf = await res.arrayBuffer();
+        await loadPdfData(item.name, buf);
+      } else {
+        const text = await res.text();
+        loadTextData(item.name, text);
+      }
+      hideLoading();
+    } catch (err) {
+      hideLoading();
+      showError(`could not open "${item.title}": ` + (err && err.message ? err.message : err));
+    } finally {
+      libraryBusy = false;
+      card.classList.remove('opening');
+    }
+  }
+
+  libraryRefresh.addEventListener('click', () => initLibrary());
+  initLibrary();
 
   // ---------- Controls ----------
   fileBtn.addEventListener('click', () => fileInput.click());
