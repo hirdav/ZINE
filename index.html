@@ -47,6 +47,25 @@
         <span id="zoomLevel" class="zoom-level">100%</span>
         <button id="zoomInBtn" class="icon-btn" title="Zoom in">+</button>
         <button id="thumbsToggle" class="icon-btn" title="Toggle thumbnails (T)">▤</button>
+        <div class="sound-anchor">
+          <button id="soundToggle" class="icon-btn" title="Ambient sound (S)">♪</button>
+          <div id="soundPanel" class="sound-panel hidden">
+            <div class="sound-panel-header">
+              <span>ambient sound</span>
+              <button id="soundOffBtn" class="sound-off-btn">off</button>
+            </div>
+            <p class="sound-panel-hint">a quiet backdrop to read against — pick one, or none</p>
+            <div class="sound-section-label">noise</div>
+            <div class="sound-grid" id="soundGridNoise"></div>
+            <div class="sound-section-label">nature</div>
+            <div class="sound-grid" id="soundGridNature"></div>
+            <div class="sound-volume-row">
+              <span class="sound-vol-icon">🔈</span>
+              <input type="range" id="soundVolume" min="0" max="100" value="45" title="Volume">
+              <span class="sound-vol-icon">🔊</span>
+            </div>
+          </div>
+        </div>
         <button id="fullscreenBtn" class="icon-btn" title="Fullscreen (F)">⛶</button>
       </div>
     </header>

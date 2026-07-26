@@ -1,4 +1,5 @@
 import * as pdfjsLib from './vendor/pdf.min.mjs';
+import { SOUND_GROUPS, soundEngine } from './sound.js';
 
 (() => {
   'use strict';
@@ -31,6 +32,13 @@ import * as pdfjsLib from './vendor/pdf.min.mjs';
   const progressFill = document.getElementById('progressFill');
   const loadingOverlay = document.getElementById('loadingOverlay');
   const loadingText = document.getElementById('loadingText');
+
+  const soundToggle = document.getElementById('soundToggle');
+  const soundPanel = document.getElementById('soundPanel');
+  const soundOffBtn = document.getElementById('soundOffBtn');
+  const soundVolume = document.getElementById('soundVolume');
+  const soundGridNoise = document.getElementById('soundGridNoise');
+  const soundGridNature = document.getElementById('soundGridNature');
 
   // ---------- State ----------
   const state = {
@@ -664,6 +672,101 @@ import * as pdfjsLib from './vendor/pdf.min.mjs';
     if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
   }
 
+  // ---------- Ambient sound ----------
+  const SOUND_ID_KEY = 'zine.sound.id';
+  const SOUND_VOL_KEY = 'zine.sound.volume';
+
+  function loadSoundPrefs() {
+    let vol = 0.45;
+    try {
+      const raw = localStorage.getItem(SOUND_VOL_KEY);
+      if (raw !== null) vol = clamp(parseFloat(raw), 0, 1);
+    } catch (e) { /* localStorage unavailable (private mode etc) */ }
+    soundEngine.volume = vol;
+    soundVolume.value = String(Math.round(vol * 100));
+    let lastId = null;
+    try { lastId = localStorage.getItem(SOUND_ID_KEY); } catch (e) {}
+    return lastId;
+  }
+
+  function saveSoundPrefs() {
+    try {
+      localStorage.setItem(SOUND_VOL_KEY, String(soundEngine.volume));
+      localStorage.setItem(SOUND_ID_KEY, soundEngine.currentId || '');
+    } catch (e) { /* ignore */ }
+  }
+
+  function buildSoundPanel(recentId) {
+    const containers = { noise: soundGridNoise, nature: soundGridNature };
+    SOUND_GROUPS.forEach((group) => {
+      const container = containers[group.id];
+      if (!container) return;
+      group.sounds.forEach((sound) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'sound-card';
+        card.dataset.soundId = sound.id;
+        if (sound.id === recentId) card.classList.add('recent');
+        card.innerHTML = `
+          <span class="sound-card-icon">${sound.icon}</span>
+          <span class="sound-card-label">${sound.label}</span>
+          <span class="sound-card-eq"><i></i><i></i><i></i></span>
+        `;
+        card.addEventListener('click', () => selectSound(sound.id));
+        container.appendChild(card);
+      });
+    });
+  }
+
+  function updateSoundCardStates() {
+    soundPanel.querySelectorAll('.sound-card').forEach((card) => {
+      card.classList.toggle('playing', card.dataset.soundId === soundEngine.currentId);
+    });
+    soundToggle.classList.toggle('active', !!soundEngine.currentId);
+  }
+
+  function selectSound(id) {
+    if (soundEngine.currentId === id) {
+      soundEngine.stop();
+    } else {
+      soundEngine.play(id);
+    }
+    updateSoundCardStates();
+    saveSoundPrefs();
+  }
+
+  function stopSound() {
+    soundEngine.stop();
+    updateSoundCardStates();
+    saveSoundPrefs();
+  }
+
+  function openSoundPanel() {
+    soundPanel.classList.remove('hidden');
+    soundToggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeSoundPanel() {
+    soundPanel.classList.add('hidden');
+    soundToggle.setAttribute('aria-expanded', 'false');
+  }
+  function isSoundPanelOpen() { return !soundPanel.classList.contains('hidden'); }
+
+  soundToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isSoundPanelOpen()) closeSoundPanel(); else openSoundPanel();
+  });
+  soundPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => { if (isSoundPanelOpen()) closeSoundPanel(); });
+
+  soundOffBtn.addEventListener('click', stopSound);
+  soundVolume.addEventListener('input', () => {
+    soundEngine.setVolume(soundVolume.value / 100);
+    saveSoundPrefs();
+  });
+
+  buildSoundPanel(loadSoundPrefs());
+  updateSoundCardStates();
+
   // ---------- Controls ----------
   fileBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
@@ -743,13 +846,16 @@ import * as pdfjsLib from './vendor/pdf.min.mjs';
       case 'PageUp':
         goPrev(); e.preventDefault(); break;
       case 'Escape':
-        if (document.fullscreenElement) document.exitFullscreen();
+        if (isSoundPanelOpen()) closeSoundPanel();
+        else if (document.fullscreenElement) document.exitFullscreen();
         else closeReader();
         break;
       case 't': case 'T':
         thumbsToggle.click(); break;
       case 'f': case 'F':
         fullscreenBtn.click(); break;
+      case 's': case 'S':
+        soundToggle.click(); break;
       case '+': case '=':
         zoomInBtn.click(); break;
       case '-': case '_':
