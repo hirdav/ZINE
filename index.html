@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE READER</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Drop / landing screen -->
+  <div id="dropzone" class="dropzone">
+    <div class="drop-inner">
+      <div class="logo">
+        <span>Z</span><span>I</span><span>N</span><span>E</span>
+      </div>
+      <p class="tagline">a browser-native reader for pdf &amp; text zines</p>
+
+      <div class="drop-target" id="dropTarget">
+        <p class="drop-label">drag &amp; drop a <b>.pdf</b>, <b>.txt</b> or <b>.md</b> file here</p>
+        <p class="drop-or">— or —</p>
+        <button id="fileBtn" class="btn-primary">choose a file</button>
+        <input type="file" id="fileInput" accept=".pdf,.txt,.md" hidden>
+      </div>
+
+      <p class="privacy-note">100% local — nothing leaves your browser. no uploads, no database.</p>
+    </div>
+  </div>
+
+  <!-- Reader UI -->
+  <div id="reader" class="reader hidden">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="backBtn" class="icon-btn" title="Close (Esc)">⟵</button>
+        <span id="docTitle" class="doc-title">untitled</span>
+      </div>
+      <div class="topbar-center">
+        <button id="prevBtn" class="icon-btn" title="Previous (←)">‹</button>
+        <span id="pageIndicator" class="page-indicator">1 / 1</span>
+        <button id="nextBtn" class="icon-btn" title="Next (→)">›</button>
+      </div>
+      <div class="topbar-right">
+        <button id="spreadToggle" class="icon-btn" title="Toggle single/spread view">⧉</button>
+        <button id="zoomOutBtn" class="icon-btn" title="Zoom out">−</button>
+        <span id="zoomLevel" class="zoom-level">100%</span>
+        <button id="zoomInBtn" class="icon-btn" title="Zoom in">+</button>
+        <button id="thumbsToggle" class="icon-btn" title="Toggle thumbnails (T)">▤</button>
+        <button id="fullscreenBtn" class="icon-btn" title="Fullscreen (F)">⛶</button>
+      </div>
+    </header>
+
+    <div class="reader-body">
+      <!-- Thumbnail rail -->
+      <aside id="thumbRail" class="thumb-rail hidden">
+        <div id="thumbList" class="thumb-list"></div>
+      </aside>
+
+      <!-- Stage -->
+      <main id="stage" class="stage">
+        <button id="edgePrev" class="edge-nav edge-prev" title="Previous page">‹</button>
+        <div id="book" class="book"></div>
+        <button id="edgeNext" class="edge-nav edge-next" title="Next page">›</button>
+      </main>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-track">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+  </div>
+
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loader"></div>
+    <p id="loadingText">loading…</p>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
