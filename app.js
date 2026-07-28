@@ -1,6 +1,10 @@
 import * as pdfjsLib from './vendor/pdf.min.mjs';
 import { SOUND_GROUPS, soundEngine } from './sound.js';
 import { scanLibrary } from './library.js';
+import * as forestState from './forest-state.js';
+import { MindForestScene, isWebGLAvailable } from './forest-scene.js';
+import * as pomodoro from './pomodoro.js';
+import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
 (() => {
   'use strict';
@@ -46,6 +50,34 @@ import { scanLibrary } from './library.js';
   const libraryEmpty = document.getElementById('libraryEmpty');
   const libraryRefresh = document.getElementById('libraryRefresh');
 
+  const streakCount = document.getElementById('streakCount');
+  const streakCountLanding = document.getElementById('streakCountLanding');
+  const streakLabelLanding = document.getElementById('streakLabelLanding');
+  const forestTeaserCanvasSlot = document.getElementById('forestTeaserCanvasSlot');
+  const forestNextLabelLanding = document.getElementById('forestNextLabelLanding');
+  const forestNextFillLanding = document.getElementById('forestNextFillLanding');
+
+  const forestToggle = document.getElementById('forestToggle');
+  const forestPanel = document.getElementById('forestPanel');
+  const forestPanelCanvasSlot = document.getElementById('forestPanelCanvasSlot');
+  const forestGpLabel = document.getElementById('forestGpLabel');
+  const forestPanelNextLabel = document.getElementById('forestPanelNextLabel');
+  const forestPanelNextFill = document.getElementById('forestPanelNextFill');
+  const statStreak = document.getElementById('statStreak');
+  const statSessions = document.getElementById('statSessions');
+  const statFocusMin = document.getElementById('statFocusMin');
+  const statUnlocked = document.getElementById('statUnlocked');
+
+  const pomodoroToggle = document.getElementById('pomodoroToggle');
+  const pomodoroPanel = document.getElementById('pomodoroPanel');
+  const pomodoroModeLabel = document.getElementById('pomodoroModeLabel');
+  const pomodoroCycleLabel = document.getElementById('pomodoroCycleLabel');
+  const pomodoroTime = document.getElementById('pomodoroTime');
+  const pomodoroRingFill = document.getElementById('pomodoroRingFill');
+  const pomodoroStartPause = document.getElementById('pomodoroStartPause');
+  const pomodoroReset = document.getElementById('pomodoroReset');
+  const pomodoroSkip = document.getElementById('pomodoroSkip');
+
   // ---------- State ----------
   const state = {
     mode: null,          // 'pdf' | 'text'
@@ -56,6 +88,7 @@ import { scanLibrary } from './library.js';
     spread: true,
     zoom: 1.0,
     thumbsRendered: false,
+    forestBookKey: null,
   };
 
   const CHARS_PER_PAGE = 1500;
@@ -151,6 +184,8 @@ import { scanLibrary } from './library.js';
     state.current = 1;
     state.zoom = 1.0;
     state.thumbsRendered = false;
+    state.forestBookKey = forestState.bookKeyFor(name, state.numPages);
+    forestState.recordSessionStart();
     clearPageCache();
     docTitle.textContent = name;
     openReader();
@@ -167,6 +202,8 @@ import { scanLibrary } from './library.js';
     state.current = 1;
     state.zoom = 1.0;
     state.thumbsRendered = false;
+    state.forestBookKey = forestState.bookKeyFor(name, state.numPages);
+    forestState.recordSessionStart();
     clearPageCache();
     docTitle.textContent = name;
     openReader();
@@ -199,6 +236,7 @@ import { scanLibrary } from './library.js';
     dropzone.classList.add('hidden');
     readerEl.classList.remove('hidden');
     updateZoomLabel();
+    if (forestScene) forestScene.stop(); // landing teaser is hidden now
   }
   function closeReader() {
     dragAbort.abort();
@@ -208,8 +246,13 @@ import { scanLibrary } from './library.js';
     thumbList.innerHTML = '';
     state.pdfDoc = null;
     state.mode = null;
+    state.forestBookKey = null;
     clearPageCache();
     fileInput.value = '';
+    if (forestScene) {
+      moveForestCanvasTo(forestTeaserCanvasSlot);
+      forestScene.start();
+    }
   }
 
   // ---------- Page content (cached) ----------
@@ -331,7 +374,15 @@ import { scanLibrary } from './library.js';
     updatePageIndicator();
     updateProgress();
     updateThumbActive();
+    reportPageProgress();
     attachDragHandlers();
+  }
+
+  function reportPageProgress() {
+    if (!state.forestBookKey) return;
+    const pages = pagesToShow();
+    const reached = pages[pages.length - 1];
+    forestState.recordPageProgress(state.forestBookKey, reached, state.numPages);
   }
 
   function sizeSlotToContent(slot, el) {
@@ -452,6 +503,7 @@ import { scanLibrary } from './library.js';
         updatePageIndicator();
         updateProgress();
         updateThumbActive();
+        reportPageProgress();
         hoverCooldownUntil = performance.now() + HOVER_COOLDOWN_MS;
       }
       attachDragHandlers();
@@ -783,6 +835,180 @@ import { scanLibrary } from './library.js';
   buildSoundPanel(loadSoundPrefs());
   updateSoundCardStates();
 
+  // ---------- Mind Forest ----------
+  let forestScene = null;
+
+  function ensureForestScene() {
+    if (forestScene || !isWebGLAvailable()) return forestScene;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'forest-canvas';
+    forestTeaserCanvasSlot.appendChild(canvas);
+    forestScene = new MindForestScene(canvas);
+    forestScene.setUnlockedItems(forestState.getUnlockedItems());
+    resizeForestScene();
+    return forestScene;
+  }
+
+  function resizeForestScene() {
+    if (!forestScene) return;
+    const rect = forestScene.canvas.parentElement.getBoundingClientRect();
+    forestScene.setSize(rect.width, rect.height);
+  }
+
+  function moveForestCanvasTo(slotEl) {
+    if (!forestScene || forestScene.canvas.parentElement === slotEl) return;
+    slotEl.appendChild(forestScene.canvas);
+    requestAnimationFrame(resizeForestScene);
+  }
+
+  function updateForestUI() {
+    const stats = forestState.getStats();
+    const progress = forestState.getProgress();
+
+    streakCount.textContent = String(stats.streak);
+    streakCountLanding.textContent = String(stats.streak);
+    document.querySelectorAll('.streak-badge').forEach((b) => b.classList.toggle('lit', stats.streak > 0));
+    streakLabelLanding.textContent = stats.streak > 0 ? 'day streak' : 'start a streak today';
+
+    forestGpLabel.textContent = `${stats.gp} gp`;
+    statStreak.textContent = String(stats.streak);
+    statSessions.textContent = String(stats.totalSessions);
+    statFocusMin.textContent = String(stats.totalFocusMinutes);
+    statUnlocked.textContent = String(stats.unlockedCount);
+
+    const nextLabel = `${progress.nextLabel} in ${progress.remaining} gp`;
+    forestNextLabelLanding.textContent = nextLabel;
+    forestPanelNextLabel.textContent = nextLabel;
+    const pct = `${Math.round(progress.pct * 100)}%`;
+    forestNextFillLanding.style.width = pct;
+    forestPanelNextFill.style.width = pct;
+
+    if (forestScene) forestScene.setUnlockedItems(forestState.getUnlockedItems());
+  }
+
+  function isForestPanelOpen() { return !forestPanel.classList.contains('hidden'); }
+  function openForestPanel() {
+    ensureForestScene();
+    forestPanel.classList.remove('hidden');
+    forestToggle.setAttribute('aria-expanded', 'true');
+    moveForestCanvasTo(forestPanelCanvasSlot);
+    if (forestScene) forestScene.start();
+    updateForestUI();
+  }
+  function closeForestPanel() {
+    forestPanel.classList.add('hidden');
+    forestToggle.setAttribute('aria-expanded', 'false');
+    if (forestScene && !readerEl.classList.contains('hidden')) forestScene.stop();
+  }
+
+  forestToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isForestPanelOpen()) closeForestPanel(); else openForestPanel();
+  });
+  forestPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => { if (isForestPanelOpen()) closeForestPanel(); });
+
+  forestState.onForestEvent((event) => {
+    updateForestUI();
+    if (event.type === 'streak') {
+      document.querySelectorAll('.streak-badge').forEach((b) => {
+        b.classList.remove('bump');
+        void b.offsetWidth;
+        b.classList.add('bump');
+      });
+    }
+  });
+
+  // the landing teaser is the forest's permanent home whenever the reader is closed
+  ensureForestScene();
+  updateForestUI();
+  if (forestScene) forestScene.start();
+
+  window.addEventListener('resize', () => resizeForestScene());
+
+  // ---------- Pomodoro ----------
+  const POMODORO_RING_CIRC = 2 * Math.PI * 44;
+
+  function pomodoroDurationMs(mode) {
+    const s = pomodoro.getSettings();
+    if (mode === 'focus') return s.focusMin * 60000;
+    if (mode === 'long-break') return s.longMin * 60000;
+    return s.shortMin * 60000;
+  }
+
+  function pomodoroModeLabelText(mode) {
+    if (mode === 'focus') return 'focus';
+    if (mode === 'long-break') return 'long break';
+    return 'short break';
+  }
+
+  function updatePomodoroUI() {
+    const mode = pomodoro.getMode();
+    const remaining = pomodoro.getRemainingMs();
+    const total = pomodoroDurationMs(mode);
+    const frac = total > 0 ? clamp(remaining / total, 0, 1) : 0;
+    const running = pomodoro.isRunning();
+
+    pomodoroTime.textContent = pomodoro.formatTime(remaining);
+    pomodoroModeLabel.textContent = pomodoroModeLabelText(mode);
+    pomodoroModeLabel.className = `pomodoro-mode-label mode-${mode}`;
+    pomodoroRingFill.classList.toggle('mode-break', mode !== 'focus');
+    pomodoroRingFill.style.strokeDashoffset = String(POMODORO_RING_CIRC * (1 - frac));
+    pomodoroCycleLabel.textContent = `#${pomodoro.getCyclesCompleted() + 1}`;
+    pomodoroStartPause.textContent = running ? 'pause' : 'start';
+    pomodoroToggle.classList.toggle('active', running);
+  }
+
+  function isPomodoroPanelOpen() { return !pomodoroPanel.classList.contains('hidden'); }
+  function openPomodoroPanel() {
+    pomodoroPanel.classList.remove('hidden');
+    pomodoroToggle.setAttribute('aria-expanded', 'true');
+    updatePomodoroUI();
+  }
+  function closePomodoroPanel() {
+    pomodoroPanel.classList.add('hidden');
+    pomodoroToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  pomodoroToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isPomodoroPanelOpen()) closePomodoroPanel(); else openPomodoroPanel();
+  });
+  pomodoroPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => { if (isPomodoroPanelOpen()) closePomodoroPanel(); });
+
+  pomodoroStartPause.addEventListener('click', () => {
+    if (pomodoro.isRunning()) pomodoro.pause(); else pomodoro.start();
+    updatePomodoroUI();
+  });
+  pomodoroReset.addEventListener('click', () => { pomodoro.reset(); updatePomodoroUI(); });
+  pomodoroSkip.addEventListener('click', () => { pomodoro.skip(); updatePomodoroUI(); });
+
+  pomodoro.onPomodoroEvent(() => updatePomodoroUI());
+  setInterval(updatePomodoroUI, 250);
+  updatePomodoroUI();
+
+  // ---------- Celebrations & onboarding ----------
+  initCelebrations();
+  maybeShowOnboarding();
+
+  // ---------- Micro-interactions: button press ripple ----------
+  function attachRipple(el) {
+    el.addEventListener('pointerdown', (e) => {
+      const rect = el.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+      ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+      el.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove());
+    });
+  }
+  document.querySelectorAll('.icon-btn, .btn-primary, .pomodoro-side-btn, .sound-off-btn, .library-refresh')
+    .forEach(attachRipple);
+
   // ---------- Library ----------
   const EXT_ICON = { pdf: '▤', txt: '☰', md: '☰' };
   let libraryBusy = false;
@@ -974,6 +1200,8 @@ import { scanLibrary } from './library.js';
         goPrev(); e.preventDefault(); break;
       case 'Escape':
         if (isSoundPanelOpen()) closeSoundPanel();
+        else if (isForestPanelOpen()) closeForestPanel();
+        else if (isPomodoroPanelOpen()) closePomodoroPanel();
         else if (document.fullscreenElement) document.exitFullscreen();
         else closeReader();
         break;
@@ -983,6 +1211,10 @@ import { scanLibrary } from './library.js';
         fullscreenBtn.click(); break;
       case 's': case 'S':
         soundToggle.click(); break;
+      case 'g': case 'G':
+        forestToggle.click(); break;
+      case 'p': case 'P':
+        pomodoroToggle.click(); break;
       case '+': case '=':
         zoomInBtn.click(); break;
       case '-': case '_':

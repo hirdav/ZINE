@@ -26,6 +26,20 @@
       <p class="privacy-note">100% local — nothing leaves your browser. no uploads, no database.</p>
     </div>
 
+    <div id="forestTeaser" class="forest-teaser">
+      <div id="forestTeaserCanvasSlot" class="forest-canvas-slot"></div>
+      <div class="forest-teaser-info">
+        <div class="forest-teaser-row">
+          <span class="streak-badge"><span class="streak-flame">🔥</span><b id="streakCountLanding">0</b></span>
+          <span class="forest-teaser-label" id="streakLabelLanding">start a streak today</span>
+        </div>
+        <div class="forest-next-row">
+          <span id="forestNextLabelLanding">Sprouting…</span>
+          <div class="forest-progress-track"><div id="forestNextFillLanding" class="forest-progress-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
     <div id="librarySection" class="library-section hidden">
       <div class="library-header">
         <span class="library-title">your library</span>
@@ -44,6 +58,7 @@
       <div class="topbar-left">
         <button id="backBtn" class="icon-btn" title="Close (Esc)">⟵</button>
         <span id="docTitle" class="doc-title">untitled</span>
+        <span id="streakBadgeTopbar" class="streak-badge" title="Daily reading streak"><span class="streak-flame">🔥</span><b id="streakCount">0</b></span>
       </div>
       <div class="topbar-center">
         <button id="prevBtn" class="icon-btn" title="Previous (←)">‹</button>
@@ -56,6 +71,48 @@
         <span id="zoomLevel" class="zoom-level">100%</span>
         <button id="zoomInBtn" class="icon-btn" title="Zoom in">+</button>
         <button id="thumbsToggle" class="icon-btn" title="Toggle thumbnails (T)">▤</button>
+        <div class="pomodoro-anchor">
+          <button id="pomodoroToggle" class="icon-btn" title="Focus timer (P)">⏱</button>
+          <div id="pomodoroPanel" class="pomodoro-panel hidden">
+            <div class="pomodoro-header">
+              <span id="pomodoroModeLabel" class="pomodoro-mode-label">focus</span>
+              <span id="pomodoroCycleLabel" class="pomodoro-cycle-label"></span>
+            </div>
+            <div class="pomodoro-ring-wrap">
+              <svg class="pomodoro-ring" viewBox="0 0 100 100">
+                <circle class="pomodoro-ring-track" cx="50" cy="50" r="44"></circle>
+                <circle id="pomodoroRingFill" class="pomodoro-ring-fill" cx="50" cy="50" r="44"></circle>
+              </svg>
+              <span id="pomodoroTime" class="pomodoro-time">25:00</span>
+            </div>
+            <div class="pomodoro-controls">
+              <button id="pomodoroStartPause" class="btn-primary pomodoro-btn">start</button>
+              <button id="pomodoroReset" class="pomodoro-side-btn" title="Reset">↺</button>
+              <button id="pomodoroSkip" class="pomodoro-side-btn" title="Skip to next phase">⏭</button>
+            </div>
+            <p class="pomodoro-hint">focus sessions grow your Mind Forest</p>
+          </div>
+        </div>
+        <div class="forest-anchor">
+          <button id="forestToggle" class="icon-btn" title="Mind Forest (G)">🌲</button>
+          <div id="forestPanel" class="forest-panel hidden">
+            <div class="forest-panel-header">
+              <span>mind forest</span>
+              <span id="forestGpLabel" class="forest-gp-label">0 gp</span>
+            </div>
+            <div id="forestPanelCanvasSlot" class="forest-canvas-slot forest-canvas-slot-panel"></div>
+            <div class="forest-next-row">
+              <span id="forestPanelNextLabel">Sprouting…</span>
+              <div class="forest-progress-track"><div id="forestPanelNextFill" class="forest-progress-fill"></div></div>
+            </div>
+            <div class="forest-stats-grid">
+              <div class="forest-stat"><b id="statStreak">0</b><span>day streak</span></div>
+              <div class="forest-stat"><b id="statSessions">0</b><span>sessions</span></div>
+              <div class="forest-stat"><b id="statFocusMin">0</b><span>focus min</span></div>
+              <div class="forest-stat"><b id="statUnlocked">0</b><span>unlocked</span></div>
+            </div>
+          </div>
+        </div>
         <div class="sound-anchor">
           <button id="soundToggle" class="icon-btn" title="Ambient sound (S)">♪</button>
           <div id="soundPanel" class="sound-panel hidden">
@@ -103,6 +160,9 @@
     <div class="loader"></div>
     <p id="loadingText">loading…</p>
   </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="onboardingOverlay" class="onboarding-overlay hidden"></div>
 
   <script type="module" src="app.js"></script>
 </body>
