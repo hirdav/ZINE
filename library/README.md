@@ -1,4 +1,4 @@
-# library/
+git # library/
 
 Drop `.pdf`, `.txt`, or `.md` files here and they'll show up as cover cards on the app's landing page — no manifest file, no build step, no restart needed (just refresh, or hit "rescan").
 
