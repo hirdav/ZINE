@@ -696,11 +696,104 @@ html, body {
 .forest-canvas-slot {
   position: relative;
   width: 100%;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(180deg, #cfe8ef, #a9d3c0);
+  background: linear-gradient(180deg, #bfe6e0, #eaf6d8);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 10px 30px rgba(0,0,0,0.35);
 }
-.forest-canvas-slot canvas { display: block; width: 100%; height: 100%; }
+.forest-scene-root { position: absolute; inset: 0; }
+.forest-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.forest-svg:active { cursor: grabbing; }
+.forest-particle-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.fs-item { cursor: grab; }
+.fs-item.fs-item-mobile { cursor: pointer; }
+.fs-item-inner {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.fs-item.selected .fs-item-inner { filter: drop-shadow(0 0 7px rgba(255,204,0,0.9)); }
+.fs-item:hover .fs-item-inner { scale: 1.05; }
+
+@keyframes fsGrowIn {
+  0% { scale: 0.04; }
+  55% { scale: 1.16; }
+  100% { scale: 1; }
+}
+@keyframes fsSway {
+  0%, 100% { rotate: calc(var(--sway-amp, 2deg) * -1); }
+  50% { rotate: var(--sway-amp, 2deg); }
+}
+.fs-item-inner.fs-grow-in { animation: fsGrowIn 0.9s cubic-bezier(.34,1.56,.64,1) both; }
+.fs-item-inner.fs-grow-in.fs-sway {
+  animation: fsGrowIn 0.9s cubic-bezier(.34,1.56,.64,1) both,
+             fsSway var(--sway-dur, 4s) ease-in-out var(--sway-delay, 0s) infinite;
+}
+
+.fs-cloud { animation: fsCloudDrift var(--fs-cloud-dur, 120s) linear infinite; animation-delay: var(--fs-cloud-delay, 0s); }
+@keyframes fsCloudDrift {
+  from { translate: -160px 0; }
+  to   { translate: 1160px 0; }
+}
+
+.fs-pond-ripple { animation: fsRipple 3.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes fsRipple {
+  0% { scale: 0.6; opacity: 0.6; }
+  100% { scale: 1.6; opacity: 0; }
+}
+
+/* seasonal weather — a handful of CSS-only falling glyphs, no assets */
+.forest-weather-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.forest-particle {
+  position: absolute;
+  top: -8%;
+  font-size: 13px;
+  line-height: 1;
+  animation-name: fsParticleFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+.forest-particle-leaf::before { content: '🍂'; }
+.forest-particle-snow::before { content: '❄'; color: #fff; }
+@keyframes fsParticleFall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.9; }
+  92% { opacity: 0.9; }
+  100% { transform: translate(var(--drift, 20px), 320px) rotate(200deg); opacity: 0; }
+}
+
+/* tap-to-inspect popover */
+.forest-popover {
+  position: absolute;
+  width: 232px;
+  max-width: calc(100% - 16px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+  z-index: 20;
+  animation: soundPanelIn .16s ease;
+}
+.forest-popover.hidden { display: none; }
+.forest-popover-close {
+  position: absolute; top: 4px; right: 6px;
+  background: none; border: none; color: var(--muted);
+  font-size: 17px; line-height: 1; cursor: pointer; padding: 3px 6px;
+}
+.forest-popover-close:hover { color: var(--paper); }
+.forest-popover-head { display: flex; align-items: center; gap: 8px; margin: 0 16px 6px 0; }
+.forest-popover-icon { font-size: 20px; }
+.forest-popover-title { font-size: 12.5px; font-weight: 700; color: var(--paper); }
+.forest-popover-story { font-size: 10.5px; color: var(--muted); line-height: 1.5; margin: 0; }
 
 .forest-progress-track {
   height: 4px;
@@ -718,23 +811,39 @@ html, body {
 
 .forest-next-row { font-size: 10.5px; color: var(--muted); letter-spacing: .3px; }
 
+.forest-explore-btn {
+  margin: 10px 0 2px;
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: .4px;
+  padding: 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+.forest-explore-btn:hover { border-color: var(--accent-2); color: var(--accent-2); background: rgba(255,204,0,0.06); }
+
 /* ---------- Mind Forest: landing teaser ---------- */
 .forest-teaser {
   width: 100%;
-  max-width: 560px;
+  max-width: 620px;
   margin-top: 30px;
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: stretch;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   animation: sectionIn .35s ease;
 }
 .forest-teaser .forest-canvas-slot {
-  width: 128px;
-  height: 96px;
+  width: 210px;
+  height: 160px;
   flex-shrink: 0;
 }
 .forest-teaser-info {
@@ -755,7 +864,7 @@ html, body {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 300px;
+  width: 360px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -775,7 +884,7 @@ html, body {
   margin-bottom: 10px;
 }
 .forest-gp-label { color: var(--accent-2); text-transform: none; letter-spacing: .3px; font-size: 11px; }
-.forest-canvas-slot-panel { height: 168px; margin-bottom: 8px; }
+.forest-canvas-slot-panel { height: 230px; margin-bottom: 4px; }
 
 .forest-stats-grid {
   margin-top: 12px;
@@ -795,6 +904,43 @@ html, body {
 }
 .forest-stat b { font-size: 13px; color: var(--paper); }
 .forest-stat span { font-size: 8.5px; color: var(--muted); letter-spacing: .2px; text-align: center; }
+
+/* ---------- Mind Forest: explore modal ---------- */
+.forest-explore-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6,10,8,0.84);
+  backdrop-filter: blur(3px);
+  animation: onboardFadeIn .25s ease;
+  padding: 24px;
+}
+.forest-explore-overlay.hidden { display: none; }
+.forest-explore-modal {
+  width: min(920px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.forest-explore-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+.forest-canvas-slot-explore { height: min(62vh, 540px); }
+.forest-explore-hint { font-size: 10.5px; color: var(--muted); text-align: center; margin: 0; }
 
 /* ---------- Pomodoro ---------- */
 .pomodoro-anchor { position: relative; }
@@ -1022,11 +1168,14 @@ html, body {
 
 @media (max-width: 720px) {
   .forest-teaser { flex-direction: column; }
-  .forest-teaser .forest-canvas-slot { width: 100%; height: 120px; }
+  .forest-teaser .forest-canvas-slot { width: 100%; height: 160px; }
   .forest-panel, .pomodoro-panel { right: -8px; }
   .forest-panel { width: 88vw; }
+  .forest-canvas-slot-panel { height: 190px; }
   .pomodoro-panel { width: 80vw; }
   #streakBadgeTopbar { display: none; }
+  .forest-explore-overlay { padding: 10px; }
+  .forest-canvas-slot-explore { height: 52vh; }
 
   .thumb-rail { display: none !important; }
   .doc-title { max-width: 24vw; }
