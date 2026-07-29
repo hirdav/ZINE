@@ -102,14 +102,36 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
   let pageCache = new Map();      // key -> Promise<HTMLElement>
   let flipBusy = false;
+  // Bumped every time a new flip attempt (hover-engage or programmatic) takes
+  // ownership of flipBusy. A flip's own async cleanup only clears flipBusy if
+  // it's still the current generation — otherwise a preempted flip's cleanup,
+  // resolving late, could stomp a newer flip that has since taken over.
+  let flipGeneration = 0;
+  // While a hover-drag is merely "live" (engaged but not yet past the commit
+  // threshold) or gracefully cancelling back to flat, it's still fully
+  // abortable. Registering that abort here lets programmatic navigation
+  // (keyboard, nav buttons, thumbnails, zoom) instantly preempt it instead of
+  // silently doing nothing just because the mouse happens to be resting near
+  // the page edge — a purely passive mouse position, not a deliberate hover
+  // gesture, shouldn't be able to block every other control.
+  let liveHoverAbort = null;
+  function preemptFlipBusy() {
+    if (!flipBusy) return true;
+    if (!liveHoverAbort) return false; // a real commit is mid-flight — let it finish
+    const abort = liveHoverAbort;
+    liveHoverAbort = null;
+    abort();
+    return true;
+  }
   let dragAbort = new AbortController();
-  // Hover-to-flip is disarmed for a short window right after a turn completes. A single
-  // continuous swipe gesture that finishes a turn often carries on past the spine into the
-  // next slot's own edge zone (same physical motion) — a position-based rearm would treat
-  // that as a fresh gesture and immediately flip back. A time-based cooldown doesn't: it only
-  // re-arms once the gesture has actually paused, so a *deliberate* later hover still works.
-  let hoverCooldownUntil = 0;
-  const HOVER_COOLDOWN_MS = 550;
+  // After a hover-driven commit, the direction just committed is disarmed until the pointer
+  // is observed away from that edge at least once. A single continuous swipe gesture that
+  // finishes a turn often carries on past the spine into the new page's own edge zone (same
+  // physical motion) — without this, that reads as a fresh gesture and immediately flips back.
+  // It's position-based rather than a blanket timer so it only ever blocks that one specific
+  // scenario — any other hover (a different direction, or the same direction after genuinely
+  // moving away) keeps working immediately instead of going dead for a few hundred ms.
+  let releaseNeededDir = null;
 
   // ---------- Helpers ----------
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -456,18 +478,22 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     let swapped = false;
     let currentT = 0;
     let ready = null;
+    let dead = false; // set by abortImmediate() when a fresher gesture instantly supersedes this one
 
     const preload = (async () => {
       const underEl = await getPageEl(target.pages[flipIdx]);
+      if (dead) return null;
       underLayer.innerHTML = '';
       underLayer.appendChild(underEl);
       let otherNewEl = null;
       if (otherIdx !== -1) otherNewEl = await getPageEl(target.pages[otherIdx]);
+      if (dead) return null;
       ready = { underEl, otherNewEl };
       return ready;
     })();
 
     function applyFrame(t) {
+      if (dead) return;
       currentT = clamp(t, 0, 1);
       leaf.style.transform = `rotateY(${sign * maxDeg * currentT}deg)`;
       leaf.style.filter = `brightness(${(1 - Math.sin(Math.min(currentT, 1) * Math.PI) * 0.42).toFixed(3)})`;
@@ -487,7 +513,9 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     }
 
     async function finish(toT) {
+      if (dead) return;
       await preload;
+      if (dead) return;
       const from = currentT;
       const dist = Math.abs(toT - from);
       const duration = 120 + dist * 380;
@@ -495,6 +523,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
         const eased = easeOutCubic(t);
         applyFrame(from + (toT - from) * eased);
       });
+      if (dead) return;
       leaf.classList.remove('flipping');
       leaf.style.transform = '';
       leaf.style.filter = '';
@@ -510,9 +539,20 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
         updateProgress();
         updateThumbActive();
         reportPageProgress();
-        hoverCooldownUntil = performance.now() + HOVER_COOLDOWN_MS;
       }
       attachDragHandlers();
+    }
+
+    // instantly drop this flip with no animation — used when a fresh gesture
+    // (a new direction, a resize, the window losing focus) needs to take over
+    // right now rather than waiting out a graceful tween
+    function abortImmediate() {
+      if (dead) return;
+      dead = true;
+      leaf.classList.remove('flipping');
+      leaf.style.transform = '';
+      leaf.style.filter = '';
+      underLayer.innerHTML = '';
     }
 
     return {
@@ -521,19 +561,22 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
       getT: () => currentT,
       commit: () => finish(1),
       cancel: () => finish(0),
+      abortImmediate,
     };
   }
 
   async function runProgrammaticFlip(dir) {
-    if (flipBusy) return;
+    const preempted = preemptFlipBusy();
+    if (!preempted) return;
     const flip = beginFlip(dir);
     if (!flip) return;
     flipBusy = true;
+    const gen = ++flipGeneration;
     try {
       if (flip.simpleParityChange) await flip.apply();
       else await flip.commit();
     } finally {
-      flipBusy = false;
+      if (flipGeneration === gen) flipBusy = false;
     }
   }
 
@@ -541,7 +584,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   function goPrev() { runProgrammaticFlip('prev'); }
 
   async function goToPage(n) {
-    if (flipBusy) return;
+    if (!preemptFlipBusy()) return;
     state.current = clamp(n, 1, state.numPages);
     await flatRender();
   }
@@ -580,31 +623,86 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   function attachSlotDrag(slot, allowedDirs, signal) {
     slot.classList.add('draggable');
 
-    // ---- shared engage/settle helpers ----
+    // ---- shared engage/commit/cancel helpers ----
     let liveFlip = null;
     let liveDir = null;
-    let settling = false;
+    let committing = false; // a hover-commit is animating to completion — let it finish untouched
 
+    // Starts (or, for a hover already mid-drag in a different direction,
+    // instantly replaces) a flip. Direction switches are synchronous — no
+    // waiting on an animation — so hovering back and forth near the spine
+    // always feels immediately responsive instead of occasionally "sticking."
     function engage(dir) {
-      if (flipBusy || settling || liveFlip) return null;
+      if (committing) return null;
+      if (releaseNeededDir === dir) return null;
+      if (liveFlip) {
+        if (liveDir === dir) return liveFlip;
+        liveFlip.abortImmediate();
+        liveFlip = null;
+        liveDir = null;
+      } else if (flipBusy && !preemptFlipBusy()) {
+        // flipBusy can still be true here even with no liveFlip of our own —
+        // e.g. this same slot's *own* graceful cancel-back animation is still
+        // easing to flat after an earlier direction switch. preemptFlipBusy
+        // instantly drops that (or any other still-abortable hover state) so
+        // a clearly-wanted new direction never has to wait out someone else's
+        // tween; it only refuses when a genuine commit is irreversibly
+        // mid-flight, which is the one case that should stay uninterrupted.
+        return null;
+      }
       const flip = beginFlip(dir);
       if (!flip || flip.simpleParityChange) return null;
       flipBusy = true;
+      const gen = ++flipGeneration;
       liveFlip = flip;
       liveDir = dir;
+      liveHoverAbort = () => cancelLive(false);
       slot.classList.add('dragging');
+      liveFlip.gen = gen;
       return flip;
     }
 
-    function settle(commit) {
+    function commitLive() {
       if (!liveFlip) return;
       const flip = liveFlip;
+      const dir = liveDir;
+      const gen = flip.gen;
+      committing = true;
       liveFlip = null;
       liveDir = null;
-      settling = true;
+      liveHoverAbort = null; // genuinely committing now — let it finish rather than snap-cancelling mid-animation
       slot.classList.remove('dragging');
-      const p = commit ? flip.commit() : flip.cancel();
-      p.finally(() => { flipBusy = false; settling = false; });
+      releaseNeededDir = dir;
+      flip.commit().finally(() => {
+        if (flipGeneration !== gen) return; // a newer gesture has since taken over — don't stomp its state
+        flipBusy = false;
+        committing = false;
+      });
+    }
+
+    function cancelLive(animated) {
+      if (!liveFlip) return;
+      const flip = liveFlip;
+      const gen = flip.gen;
+      liveFlip = null;
+      liveDir = null;
+      slot.classList.remove('dragging');
+      if (!animated) {
+        if (flipGeneration === gen) liveHoverAbort = null;
+        flip.abortImmediate();
+        if (flipGeneration === gen) flipBusy = false;
+        return;
+      }
+      // still fully preemptable while it eases back to flat
+      liveHoverAbort = () => {
+        flip.abortImmediate();
+        if (flipGeneration === gen) flipBusy = false;
+      };
+      flip.cancel().finally(() => {
+        if (flipGeneration !== gen) return; // a newer gesture has since taken over — don't stomp its state
+        liveHoverAbort = null;
+        flipBusy = false;
+      });
     }
 
     // ---- touch: press-and-drag (touchscreens have no hover) ----
@@ -638,39 +736,40 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
       }
 
       // ---- mouse / pen: hover-driven, no press required ----
-      if (settling) return;
       const rect = slot.getBoundingClientRect();
       const relX = e.clientX - rect.left;
-      let want = null, t = 0, zone = rect.width;
+      let want = null, t = 0;
 
       if (allowedDirs.length === 2) {
         const half = rect.width / 2;
-        if (relX >= half) { want = 'next'; t = clamp((rect.width - relX) / half, 0, 1); zone = half; }
-        else { want = 'prev'; t = clamp(relX / half, 0, 1); zone = half; }
+        if (relX >= half) { want = 'next'; t = clamp((rect.width - relX) / half, 0, 1); }
+        else { want = 'prev'; t = clamp(relX / half, 0, 1); }
       } else if (allowedDirs.includes('next')) {
         want = 'next'; t = clamp((rect.width - relX) / rect.width, 0, 1);
       } else if (allowedDirs.includes('prev')) {
         want = 'prev'; t = clamp(relX / rect.width, 0, 1);
       }
-      if (!want) return;
+      if (!want) { cancelLive(true); return; }
+
       const nearEdge = t <= HOVER_EDGE_FRACTION;
+      if (releaseNeededDir === want && !nearEdge) releaseNeededDir = null;
 
-      if (liveFlip && liveDir !== want) settle(false);
-
-      if (!liveFlip) {
-        if (performance.now() < hoverCooldownUntil) return; // just turned a page — ignore the tail of that gesture
-        if (!nearEdge) return; // too far from the edge to engage
+      if (liveFlip && liveDir !== want) {
+        if (!nearEdge || !engage(want)) { cancelLive(true); return; }
+      } else if (!liveFlip) {
+        if (!nearEdge) return;
         if (!engage(want)) return;
       }
       liveFlip.applyFrame(t);
-      if (t >= HOVER_COMMIT_T) settle(true);
+      if (t >= HOVER_COMMIT_T) commitLive();
     }, { signal });
 
     async function endTouch(e) {
       if (e.pointerType !== 'touch') return;
       if (pointerId === null || e.pointerId !== pointerId) return;
       pointerId = null;
-      if (liveFlip) settle(liveFlip.getT() > 0.35);
+      if (!liveFlip) return;
+      if (liveFlip.getT() > 0.35) commitLive(); else cancelLive(true);
     }
     slot.addEventListener('pointerup', endTouch, { signal });
     slot.addEventListener('pointercancel', endTouch, { signal });
@@ -678,8 +777,22 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
     slot.addEventListener('pointerleave', (e) => {
       if (e.pointerType === 'touch') return;
-      if (liveFlip) settle(false);
+      // Leaving the slot entirely is at least as clear a "moved away from the
+      // edge" signal as pausing mid-slot — without this, a hover that exits
+      // straight off the page edge (the common case) rather than drifting
+      // back toward the center first would leave the just-committed
+      // direction disarmed indefinitely, since the pointermove-based release
+      // check never gets another event on this slot to notice the change.
+      releaseNeededDir = null;
+      cancelLive(true);
     }, { signal });
+
+    // Safety net: if the window loses focus mid-hover (alt-tab, a devtools
+    // click, an OS dialog), no pointerleave will ever fire to clean up — so
+    // without this, flipBusy could stay stuck true and every other control
+    // (arrow keys, nav buttons, thumbnails) would silently stop responding
+    // until the pointer happened to cross this slot again.
+    window.addEventListener('blur', () => { if (liveFlip) cancelLive(false); }, { signal });
   }
 
   // ---------- Thumbnails ----------
@@ -1191,20 +1304,20 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   edgeNext.addEventListener('click', goNext);
 
   spreadToggle.addEventListener('click', () => {
-    if (flipBusy) return;
+    if (!preemptFlipBusy()) return;
     state.spread = !state.spread;
     spreadToggle.classList.toggle('active', state.spread);
     flatRender();
   });
 
   zoomInBtn.addEventListener('click', () => {
-    if (flipBusy) return;
+    if (!preemptFlipBusy()) return;
     state.zoom = Math.min(2.5, +(state.zoom + 0.1).toFixed(2));
     updateZoomLabel();
     flatRender();
   });
   zoomOutBtn.addEventListener('click', () => {
-    if (flipBusy) return;
+    if (!preemptFlipBusy()) return;
     state.zoom = Math.max(0.4, +(state.zoom - 0.1).toFixed(2));
     updateZoomLabel();
     flatRender();
@@ -1265,7 +1378,14 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   window.addEventListener('resize', () => {
     if (readerEl.classList.contains('hidden')) return;
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { clearPageCache(); flatRender(); }, 150);
+    resizeTimer = setTimeout(function tick() {
+      // a live hover-flip owns the current DOM (its leaf/under-layer elements) —
+      // wiping the book out from under it here would silently strand it with
+      // flipBusy stuck true, locking out every other control. Wait it out instead.
+      if (flipBusy) { resizeTimer = setTimeout(tick, 120); return; }
+      clearPageCache();
+      flatRender();
+    }, 150);
   });
 
 })();
