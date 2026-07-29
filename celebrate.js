@@ -6,7 +6,7 @@
 // Every animation exists to mark a real event (an unlock, a streak, a
 // finished focus session) — nothing plays just to play.
 
-import { onForestEvent, hasSeenOnboarding, markOnboardingSeen } from './forest-state.js';
+import { onForestEvent, hasSeenOnboarding, markOnboardingSeen, KIND_ICONS } from './forest-state.js';
 import { onPomodoroEvent } from './pomodoro.js';
 
 let toastContainer = null;
@@ -81,13 +81,6 @@ export function showToast({ icon, title, subtitle, tone = 'default', burst = fal
   card.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
 }
 
-const UNLOCK_ICONS = {
-  sprout: '🌱', sapling: '🌿', fern: '🌿', 'young-pine': '🌲', 'mushroom-cluster': '🍄',
-  'young-oak': '🌳', songbird: '🐦', wildflowers: '🌼', 'young-birch': '🌳', butterfly: '🦋',
-  'mature-pine': '🌲', boulder: '🪨', 'fallen-log': '🪵', 'mature-oak': '🌳', 'firefly-swarm': '✨',
-  pond: '💧', 'mature-birch': '🌳', deer: '🦌', fox: '🦊', 'starlit-canopy': '✨', grove: '🌳',
-};
-
 const STREAK_MILESTONES = new Set([3, 7, 14, 30, 60, 100, 200, 365]);
 
 let initialized = false;
@@ -99,7 +92,7 @@ export function initCelebrations() {
   onForestEvent((event) => {
     if (event.type === 'unlock') {
       showToast({
-        icon: UNLOCK_ICONS[event.item.kind] || '🌱',
+        icon: KIND_ICONS[event.item.kind] || '🌱',
         title: `${event.item.label} unlocked`,
         subtitle: 'your Mind Forest grew a little',
         tone: 'unlock',

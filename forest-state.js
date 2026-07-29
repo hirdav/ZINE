@@ -9,9 +9,10 @@
 // and library preferences elsewhere in the app).
 //
 // This module owns the economy and persistence only. forest-scene.js turns
-// the unlocked catalog into a 3D scene; celebrate.js turns emitted events
-// into on-screen moments; app.js / pomodoro.js call the record* functions at
-// the right lifecycle points.
+// the unlocked catalog into a living scene (and lets the reader drag items
+// around it — custom layout lives here too, in itemPositions); celebrate.js
+// turns emitted events into on-screen moments; app.js / pomodoro.js call the
+// record* functions at the right lifecycle points.
 
 const STORAGE_KEY = 'zine.forest.v1';
 
@@ -35,6 +36,15 @@ function daysBetween(a, b) {
   return Math.round((db - da) / 86400000);
 }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ---------- seasons (real calendar month; purely a visual mood, no data cost) ----------
+export function getSeason(d = new Date()) {
+  const m = d.getMonth(); // 0=Jan
+  if (m >= 2 && m <= 4) return 'spring';
+  if (m >= 5 && m <= 7) return 'summer';
+  if (m >= 8 && m <= 10) return 'autumn';
+  return 'winter';
+}
 
 // ---------- unlock catalog ----------
 // Order = unlock order. `gp` is the lifetime-GP threshold at which the item
@@ -93,22 +103,26 @@ const DEFAULT_STATE = {
   focusSessionsCompleted: 0,
   booksProgress: {},
   unlockedIds: [],
+  unlockRecords: {}, // id -> { unlockedAt, streak, totalSessions, totalFocusMinutes, gp }
+  itemPositions: {}, // id -> { x, y } — set once the reader drags an item off its default spot
   onboardingSeen: false,
 };
 
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_STATE, booksProgress: {}, unlockedIds: [] };
+    if (!raw) return { ...DEFAULT_STATE, booksProgress: {}, unlockedIds: [], unlockRecords: {}, itemPositions: {} };
     const parsed = JSON.parse(raw);
     return {
       ...DEFAULT_STATE,
       ...parsed,
       booksProgress: parsed.booksProgress || {},
       unlockedIds: parsed.unlockedIds || [],
+      unlockRecords: parsed.unlockRecords || {},
+      itemPositions: parsed.itemPositions || {},
     };
   } catch (e) {
-    return { ...DEFAULT_STATE, booksProgress: {}, unlockedIds: [] };
+    return { ...DEFAULT_STATE, booksProgress: {}, unlockedIds: [], unlockRecords: {}, itemPositions: {} };
   }
 }
 
@@ -126,6 +140,13 @@ function checkUnlocks() {
     const index = state.unlockedIds.length;
     const item = unlockAtIndex(index);
     state.unlockedIds.push(item.id);
+    state.unlockRecords[item.id] = {
+      unlockedAt: Date.now(),
+      streak: state.streak,
+      totalSessions: state.totalSessions,
+      totalFocusMinutes: state.totalFocusMinutes,
+      gp: state.gp,
+    };
     emit({ type: 'unlock', item, index });
   }
 }
@@ -204,6 +225,29 @@ export function getUnlockedItems() {
   return state.unlockedIds.map((id, i) => unlockAtIndex(i));
 }
 
+// The story behind one grown item — when it appeared and what your reading
+// habit looked like that day. Falls back gracefully for items unlocked
+// before this record existed.
+export function getUnlockRecord(id) {
+  return state.unlockRecords[id] || null;
+}
+
+export function getItemPosition(id) {
+  return state.itemPositions[id] || null;
+}
+
+// Persist a custom (dragged) position for an item, in the scene's own world
+// coordinates — independent of pan/zoom so it's stable across sessions.
+export function setItemPosition(id, x, y) {
+  state.itemPositions[id] = { x, y };
+  save();
+}
+
+export function clearItemPosition(id) {
+  delete state.itemPositions[id];
+  save();
+}
+
 export function getProgress() {
   const idx = state.unlockedIds.length;
   const next = unlockAtIndex(idx);
@@ -235,3 +279,15 @@ export function getStats() {
 export function bookKeyFor(name, numPages) {
   return `${name}::${numPages}`;
 }
+
+// shared between celebrate.js (toasts) and forest-scene.js (tap-to-inspect popover)
+export const KIND_ICONS = {
+  sprout: '🌱', sapling: '🌿', fern: '🌿', 'young-pine': '🌲', 'mushroom-cluster': '🍄',
+  'young-oak': '🌳', songbird: '🐦', wildflowers: '🌼', 'young-birch': '🌳', butterfly: '🦋',
+  'mature-pine': '🌲', boulder: '🪨', 'fallen-log': '🪵', 'mature-oak': '🌳', 'firefly-swarm': '✨',
+  pond: '💧', 'mature-birch': '🌳', deer: '🦌', fox: '🦊', 'starlit-canopy': '✨', grove: '🌳',
+};
+
+// kinds that roam under their own animation rather than being "planted" —
+// selectable for their story, but not draggable to a new spot
+export const MOBILE_KINDS = new Set(['songbird', 'butterfly']);

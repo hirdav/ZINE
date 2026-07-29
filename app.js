@@ -2,7 +2,7 @@ import * as pdfjsLib from './vendor/pdf.min.mjs';
 import { SOUND_GROUPS, soundEngine } from './sound.js';
 import { scanLibrary } from './library.js';
 import * as forestState from './forest-state.js';
-import { MindForestScene, isWebGLAvailable } from './forest-scene.js';
+import { MindForestScene } from './forest-scene.js';
 import * as pomodoro from './pomodoro.js';
 import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
@@ -67,6 +67,11 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   const statSessions = document.getElementById('statSessions');
   const statFocusMin = document.getElementById('statFocusMin');
   const statUnlocked = document.getElementById('statUnlocked');
+  const forestExploreBtn = document.getElementById('forestExploreBtn');
+  const forestExploreBtnLanding = document.getElementById('forestExploreBtnLanding');
+  const forestExploreOverlay = document.getElementById('forestExploreOverlay');
+  const forestExploreCanvasSlot = document.getElementById('forestExploreCanvasSlot');
+  const forestExploreClose = document.getElementById('forestExploreClose');
 
   const pomodoroToggle = document.getElementById('pomodoroToggle');
   const pomodoroPanel = document.getElementById('pomodoroPanel');
@@ -249,6 +254,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     state.forestBookKey = null;
     clearPageCache();
     fileInput.value = '';
+    forestHomeSlot = forestTeaserCanvasSlot;
     if (forestScene) {
       moveForestCanvasTo(forestTeaserCanvasSlot);
       forestScene.start();
@@ -837,13 +843,12 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
   // ---------- Mind Forest ----------
   let forestScene = null;
+  let forestHomeSlot = forestTeaserCanvasSlot; // where the scene returns to once the explore modal closes
 
   function ensureForestScene() {
-    if (forestScene || !isWebGLAvailable()) return forestScene;
-    const canvas = document.createElement('canvas');
-    canvas.className = 'forest-canvas';
-    forestTeaserCanvasSlot.appendChild(canvas);
-    forestScene = new MindForestScene(canvas);
+    if (forestScene) return forestScene;
+    forestScene = new MindForestScene();
+    forestTeaserCanvasSlot.appendChild(forestScene.el);
     forestScene.setUnlockedItems(forestState.getUnlockedItems());
     resizeForestScene();
     return forestScene;
@@ -851,13 +856,13 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
   function resizeForestScene() {
     if (!forestScene) return;
-    const rect = forestScene.canvas.parentElement.getBoundingClientRect();
+    const rect = forestScene.el.parentElement.getBoundingClientRect();
     forestScene.setSize(rect.width, rect.height);
   }
 
   function moveForestCanvasTo(slotEl) {
-    if (!forestScene || forestScene.canvas.parentElement === slotEl) return;
-    slotEl.appendChild(forestScene.canvas);
+    if (!forestScene || forestScene.el.parentElement === slotEl) return;
+    slotEl.appendChild(forestScene.el);
     requestAnimationFrame(resizeForestScene);
   }
 
@@ -891,6 +896,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     ensureForestScene();
     forestPanel.classList.remove('hidden');
     forestToggle.setAttribute('aria-expanded', 'true');
+    forestHomeSlot = forestPanelCanvasSlot;
     moveForestCanvasTo(forestPanelCanvasSlot);
     if (forestScene) forestScene.start();
     updateForestUI();
@@ -898,7 +904,9 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   function closeForestPanel() {
     forestPanel.classList.add('hidden');
     forestToggle.setAttribute('aria-expanded', 'false');
-    if (forestScene && !readerEl.classList.contains('hidden')) forestScene.stop();
+    forestHomeSlot = forestTeaserCanvasSlot;
+    if (!isForestExploreOpen()) moveForestCanvasTo(forestTeaserCanvasSlot);
+    if (forestScene && !readerEl.classList.contains('hidden') && !isForestExploreOpen()) forestScene.stop();
   }
 
   forestToggle.addEventListener('click', (e) => {
@@ -907,6 +915,36 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   });
   forestPanel.addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', () => { if (isForestPanelOpen()) closeForestPanel(); });
+
+  // ---------- Mind Forest: explore modal ----------
+  // a bigger, dedicated space to pan around, tap trees for their story, and
+  // drag things to a new spot — the small panel/teaser previews aren't a
+  // comfortable place to do that precisely
+  function isForestExploreOpen() { return !forestExploreOverlay.classList.contains('hidden'); }
+  function openForestExplore() {
+    ensureForestScene();
+    forestExploreOverlay.classList.remove('hidden');
+    moveForestCanvasTo(forestExploreCanvasSlot);
+    forestScene.start();
+    updateForestUI();
+  }
+  function closeForestExplore() {
+    forestExploreOverlay.classList.add('hidden');
+    moveForestCanvasTo(forestHomeSlot);
+    const readerOpen = !readerEl.classList.contains('hidden');
+    const homeVisible = forestHomeSlot === forestTeaserCanvasSlot ? !readerOpen : isForestPanelOpen();
+    if (forestScene && !homeVisible) forestScene.stop();
+  }
+  forestExploreBtn.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
+  forestExploreBtnLanding.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
+  forestExploreClose.addEventListener('click', () => closeForestExplore());
+  forestExploreOverlay.addEventListener('click', (e) => { if (e.target === forestExploreOverlay) closeForestExplore(); });
+  // the explore modal can be open from the landing page too, where the
+  // reader's (reader-only) keydown handler never runs — so it needs its own
+  // always-on Escape handling rather than sharing the reader's Escape case
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isForestExploreOpen()) closeForestExplore();
+  });
 
   forestState.onForestEvent((event) => {
     updateForestUI();
@@ -1006,7 +1044,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
       ripple.addEventListener('animationend', () => ripple.remove());
     });
   }
-  document.querySelectorAll('.icon-btn, .btn-primary, .pomodoro-side-btn, .sound-off-btn, .library-refresh')
+  document.querySelectorAll('.icon-btn, .btn-primary, .pomodoro-side-btn, .sound-off-btn, .library-refresh, .forest-explore-btn')
     .forEach(attachRipple);
 
   // ---------- Library ----------
@@ -1190,6 +1228,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 
   window.addEventListener('keydown', (e) => {
     if (readerEl.classList.contains('hidden')) return;
+    if (isForestExploreOpen()) return; // the explore modal owns keyboard input while open
     switch (e.key) {
       case 'ArrowRight':
       case 'PageDown':

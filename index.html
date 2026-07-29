@@ -37,6 +37,7 @@
           <span id="forestNextLabelLanding">Sprouting…</span>
           <div class="forest-progress-track"><div id="forestNextFillLanding" class="forest-progress-fill"></div></div>
         </div>
+        <button id="forestExploreBtnLanding" class="forest-explore-btn">⤢ explore your forest</button>
       </div>
     </div>
 
@@ -101,6 +102,7 @@
               <span id="forestGpLabel" class="forest-gp-label">0 gp</span>
             </div>
             <div id="forestPanelCanvasSlot" class="forest-canvas-slot forest-canvas-slot-panel"></div>
+            <button id="forestExploreBtn" class="forest-explore-btn">⤢ explore your forest</button>
             <div class="forest-next-row">
               <span id="forestPanelNextLabel">Sprouting…</span>
               <div class="forest-progress-track"><div id="forestPanelNextFill" class="forest-progress-fill"></div></div>
@@ -163,6 +165,17 @@
 
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
   <div id="onboardingOverlay" class="onboarding-overlay hidden"></div>
+
+  <div id="forestExploreOverlay" class="forest-explore-overlay hidden">
+    <div class="forest-explore-modal">
+      <div class="forest-explore-header">
+        <span>your mind forest</span>
+        <button id="forestExploreClose" class="icon-btn" title="Close">✕</button>
+      </div>
+      <div id="forestExploreCanvasSlot" class="forest-canvas-slot forest-canvas-slot-explore"></div>
+      <p class="forest-explore-hint">drag the background to pan · tap a tree for its story · drag a tree or creature to replant it</p>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
