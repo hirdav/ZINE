@@ -11,7 +11,7 @@ Turn pages the way you'd turn a real one: drag a page from its edge, or just hov
 - **Spread or single-page view**, with a proper cover-alone / paired-spread layout
 - **Crisp at any display density** — canvases render at native device pixel ratio, not just CSS size
 - **Zoom, thumbnails, fullscreen, keyboard navigation** (`←`/`→`, `Space`, `F`, `T`, `+`/`-`, `G`, `P`, `Esc`)
-- **Ambient sound library** (`S`) — white/pink/brown noise and rain/ocean/wind, synthesized on the fly with the Web Audio API (no audio files, nothing to download). Deliberately no music or speech: research on background sound and reading finds lyrics and vocal content reliably hurt comprehension, while plain noise and low-semantic nature sound are neutral-to-helpful and specifically aid some ADHD/dyslexic readers — so that's what's on offer
+- **Ambient sound library** (`S`) — white/pink/brown noise, plus 8 environments (rain, ocean, wind, forest, café, library, fireplace, night), all synthesized on the fly with the Web Audio API (no audio files, nothing to download). Deliberately no music or speech: research on background sound and reading finds lyrics and vocal content reliably hurt comprehension, while plain noise and low-semantic ambient sound are neutral-to-helpful and specifically aid some ADHD/dyslexic readers — so that's what's on offer
 - **Local library** — drop files into a `library/` folder and they show up as cover cards on the landing page; click one to open it directly. No manifest, no upload, no database — see [library/README.md](library/README.md)
 - **Mind Forest** (`G`) — a living, explorable 2D ecosystem that grows as you read. Reading sessions, streaks, book milestones, and finished Pomodoro focus sessions all earn Growth Points, which unlock an ever-growing catalog of trees, plants, and wildlife, each painted with layered gradients and organic shapes rather than flat icons. It follows real time of day and season (spring/summer/autumn/winter foliage, snow, falling leaves, fireflies and stars after dark), and lives on the landing page, a reader panel, and a full "explore your forest" view where you can drag to pan around, tap any tree or creature to see when it was planted and which reading session grew it, and drag things to a new spot to personalize your grove
 - **Three.js, used once, on purpose** — the one WebGL touch is a soft additive-glow firefly field at night, gated behind its own unlock; everything else in the forest (the trees, the clouds, the seasons, the pan/select/drag interaction) is layered SVG and CSS, since that's what makes rich painterly artwork and reliable hit-testing actually easy without a build step
@@ -19,6 +19,8 @@ Turn pages the way you'd turn a real one: drag a page from its edge, or just hov
 - **Reward consistency, not speed** — a daily streak counter, session/focus-time stats, and tasteful celebration toasts on unlocks and milestones. Everything is a lifetime total that only ever goes up
 - **Local-first, cloud-optional** — reading and forest progress work fully offline in `localStorage` with no account. Sign in with Google (👤 in the topbar, or the landing page) and the same progress also syncs to a Supabase backend, so opening the app on another device catches up rather than starting over
 - **100% local by default** — nothing is uploaded anywhere unless you choose to sign in; even then, only Mind Forest growth data leaves the browser, never the files themselves
+- **A real landing page** — the drop screen doubles as a scrolling one-pager explaining the Mind Forest, Pomodoro reading, the ambient sound library (tap any environment card to preview it live), and why paginated reading beats infinite scroll, before ever asking for an account
+- **A profile dashboard** (`profile.html`, sign-in required) — overview stats (streak, pages, reading time, level, XP), an embedded explorable forest with a document/date-range filter, reading analytics (a 12-week calendar heatmap, streak history, recent sessions, consistency and focus-score metrics), a library grid of every synced document, a chronological growth timeline, and animated achievement badges
 
 ## Running it
 
@@ -43,6 +45,10 @@ Then open `http://localhost:5500`. Any other static file server works too (`npx 
 - **`celebrate.js`** — celebration toasts and the first-run onboarding story, both hand-rolled with CSS/WAAPI (no React, no video-render pipeline — this app has no build step)
 - **`auth.js`** — Supabase Auth wrapper: Google sign-in, session persistence/refresh, and an `onAuthChange` subscription. The only file that touches the `window.supabase` global
 - **`cloud-sync.js`** — bridges reading activity to Supabase once signed in: upserts a `documents` row per opened file, inserts a `reading_sessions` row per open/close, and appends one `growth_events` row per GP-earning moment. Every function is a no-op when signed out and swallows its own errors — cloud sync is a best-effort backup layer, never a blocker for reading
+- **`landing.js`** — the marketing landing page's own small script: scroll-reveal, smooth-scroll nav, the growth-stage and Pomodoro-ring demo loops, and the playable ambience preview grid. Independent of `app.js`; only touches `sound.js` and the new marketing markup
+- **`profile.html` / `profile.js` / `profile.css`** — the profile dashboard: gated on `auth.js`, rendered entirely from `profile-data.js` + `achievements.js`, embeds a second `MindForestScene` instance for the "explore your forest" panel
+- **`profile-data.js`** — the dashboard's one consolidated Supabase query (documents, reading_sessions, growth_events, profiles, `get_my_totals()`), turned into per-document aggregates, a calendar heatmap, streak runs, and a growth-event timeline. Read-only; never writes
+- **`achievements.js`** — the achievement catalog and its unlock checks, each reading only real tracked numbers (streaks, focus minutes, unlock counts, timestamps) — nothing fabricated. Remembers which achievements have already been shown as "new" in `localStorage` so the unlock animation plays once
 - **`vendor/`** — [pdf.js](https://mozilla.github.io/pdf.js/) (MIT/Apache-2.0), [three.js](https://github.com/mrdoob/three.js) (MIT), and [supabase-js](https://github.com/supabase/supabase-js) (MIT), vendored locally so the app has no CDN dependency
 
 PDF pages and rendered text pages are cached per `(page, zoom, viewport height)` key and reused between the flat view and the flip animation, so navigating around doesn't re-render pages you've already visited at the current zoom level.
@@ -82,6 +88,8 @@ This is a small, hackable codebase — good first-issue territory. Some directio
 - A settings panel for flip sensitivity / animation speed
 - More ambient sounds, or the ability to layer more than one at once (e.g. rain + brown noise)
 - A fallback for the library on hosts without directory-listing support (e.g. an optional manifest.json a contributor could opt into)
+- Notes and highlights — the profile dashboard's library cards already have a slot for these counts (currently always 0, honestly, since the feature doesn't exist yet)
+- A real leaderboard UI — the `get_leaderboard()` RPC is already there, unused
 - Tests — there currently are none
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get set up.

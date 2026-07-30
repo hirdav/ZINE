@@ -10,47 +10,85 @@
 
   <!-- Drop / landing screen -->
   <div id="dropzone" class="dropzone">
-    <div class="drop-inner">
-      <div class="logo">
-        <span>Z</span><span>I</span><span>N</span><span>E</span>
+
+    <nav class="landing-nav">
+      <span class="landing-nav-logo">ZINE</span>
+      <div class="landing-nav-links">
+        <a href="#sectionForest">forest</a>
+        <a href="#sectionFocus">focus</a>
+        <a href="#sectionAmbience">ambience</a>
+        <a href="#sectionWhy">why zine</a>
       </div>
-      <p class="tagline">a browser-native reader for pdf &amp; text zines</p>
+      <button id="navSignInBtn" class="account-google-btn landing-nav-cta">
+        <span class="account-google-icon">G</span> sign in
+      </button>
+    </nav>
 
-      <div class="drop-target" id="dropTarget">
-        <p class="drop-label">drag &amp; drop a <b>.pdf</b>, <b>.txt</b> or <b>.md</b> file here</p>
-        <p class="drop-or">— or —</p>
-        <button id="fileBtn" class="btn-primary">choose a file</button>
-        <input type="file" id="fileInput" accept=".pdf,.txt,.md" hidden>
+    <section class="landing-hero" id="hero">
+      <div class="hero-decor" aria-hidden="true">
+        <div class="hero-cloud hero-cloud-1"></div>
+        <div class="hero-cloud hero-cloud-2"></div>
+        <div class="hero-cloud hero-cloud-3"></div>
+        <div class="hero-bird hero-bird-1">🐦</div>
+        <div class="hero-bird hero-bird-2">🐦</div>
+        <div class="hero-leaf hero-leaf-1">🍂</div>
+        <div class="hero-leaf hero-leaf-2">🍁</div>
+        <div class="hero-leaf hero-leaf-3">🍃</div>
+        <div class="hero-leaf hero-leaf-4">🍂</div>
       </div>
 
-      <p class="privacy-note">reading stays 100% local — nothing leaves your browser. signing in only syncs your Mind Forest, so it follows you to another device.</p>
+      <div class="hero-grid">
+        <div class="hero-copy reveal">
+          <div class="logo">
+            <span>Z</span><span>I</span><span>N</span><span>E</span>
+          </div>
+          <p class="hero-eyebrow">a calmer way to read</p>
+          <h1 class="hero-headline">Every page you turn<br><em>grows</em> something.</h1>
+          <p class="hero-sub">ZINE turns reading into a living forest — focused sessions, page streaks, and finished books all feed a small ecosystem that's yours alone. No build step, no upload, no account required to start.</p>
 
-      <div class="account-row-landing">
-        <button id="googleSignInBtnLanding" class="account-google-btn">
-          <span class="account-google-icon">G</span> sign in with Google
-        </button>
-        <div id="accountSignedInLanding" class="account-signedin hidden">
-          <img id="accountAvatarLanding" class="account-avatar" alt="">
-          <span id="accountNameLanding" class="account-name"></span>
-          <button id="signOutBtnLanding" class="account-signout-btn" title="Sign out">sign out</button>
+          <div class="drop-target" id="dropTarget">
+            <p class="drop-label">drag &amp; drop a <b>.pdf</b>, <b>.txt</b> or <b>.md</b> file here</p>
+            <p class="drop-or">— or —</p>
+            <button id="fileBtn" class="btn-primary">choose a file</button>
+            <input type="file" id="fileInput" accept=".pdf,.txt,.md" hidden>
+          </div>
+
+          <p class="privacy-note">reading stays 100% local — nothing leaves your browser. signing in only syncs your Mind Forest, so it follows you to another device.</p>
+
+          <div class="account-row-landing">
+            <button id="googleSignInBtnLanding" class="account-google-btn">
+              <span class="account-google-icon">G</span> sign in with Google
+            </button>
+            <div id="accountSignedInLanding" class="account-signedin hidden">
+              <img id="accountAvatarLanding" class="account-avatar" alt="">
+              <span id="accountNameLanding" class="account-name"></span>
+              <a href="profile.html" class="account-profile-link">📊 profile</a>
+              <button id="signOutBtnLanding" class="account-signout-btn" title="Sign out">sign out</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-art reveal">
+          <div id="forestTeaser" class="forest-teaser hero-forest">
+            <div id="forestTeaserCanvasSlot" class="forest-canvas-slot"></div>
+            <div class="forest-teaser-info">
+              <div class="forest-teaser-row">
+                <span class="streak-badge"><span class="streak-flame">🔥</span><b id="streakCountLanding">0</b></span>
+                <span class="forest-teaser-label" id="streakLabelLanding">start a streak today</span>
+              </div>
+              <div class="forest-next-row">
+                <span id="forestNextLabelLanding">Sprouting…</span>
+                <div class="forest-progress-track"><div id="forestNextFillLanding" class="forest-progress-fill"></div></div>
+              </div>
+              <button id="forestExploreBtnLanding" class="forest-explore-btn">⤢ explore your forest</button>
+            </div>
+          </div>
+          <p class="hero-art-caption">this is a real, live preview — your forest, growing as you read</p>
         </div>
       </div>
-    </div>
 
-    <div id="forestTeaser" class="forest-teaser">
-      <div id="forestTeaserCanvasSlot" class="forest-canvas-slot"></div>
-      <div class="forest-teaser-info">
-        <div class="forest-teaser-row">
-          <span class="streak-badge"><span class="streak-flame">🔥</span><b id="streakCountLanding">0</b></span>
-          <span class="forest-teaser-label" id="streakLabelLanding">start a streak today</span>
-        </div>
-        <div class="forest-next-row">
-          <span id="forestNextLabelLanding">Sprouting…</span>
-          <div class="forest-progress-track"><div id="forestNextFillLanding" class="forest-progress-fill"></div></div>
-        </div>
-        <button id="forestExploreBtnLanding" class="forest-explore-btn">⤢ explore your forest</button>
-      </div>
-    </div>
+      <a href="#librarySection" class="hero-scroll-cue" aria-label="Scroll to learn more">↓</a>
+    </section>
 
     <div id="librarySection" class="library-section hidden">
       <div class="library-header">
@@ -60,6 +98,156 @@
       <div id="libraryGrid" class="library-grid"></div>
       <p id="libraryEmpty" class="library-empty hidden">no books yet — drop a <b>.pdf</b>, <b>.txt</b>, or <b>.md</b> into the <code>library/</code> folder and rescan.</p>
     </div>
+
+    <!-- ---------- Grow your Mind Forest ---------- -->
+    <section class="landing-section" id="sectionForest">
+      <div class="landing-section-grid">
+        <div class="landing-section-copy reveal">
+          <p class="section-eyebrow">01 — mind forest</p>
+          <h2 class="section-heading">Grow your Mind Forest</h2>
+          <ul class="section-points">
+            <li>Every focused reading session grows a living forest.</li>
+            <li>Reading consistently unlocks new trees, plants, wildlife, and environments.</li>
+            <li>Your forest becomes a visual record of your own learning journey — nobody else's.</li>
+          </ul>
+        </div>
+        <div class="growth-demo reveal" aria-hidden="true">
+          <div class="growth-demo-stage">
+            <span class="growth-demo-item active" data-stage="0">🌱</span>
+            <span class="growth-demo-item" data-stage="1">🌿</span>
+            <span class="growth-demo-item" data-stage="2">🌳</span>
+            <span class="growth-demo-item" data-stage="3">🦋</span>
+            <span class="growth-demo-item" data-stage="4">🌲</span>
+          </div>
+          <div class="growth-demo-ground"></div>
+          <p class="growth-demo-caption" id="growthDemoCaption">seed planted</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- Pomodoro Reading ---------- -->
+    <section class="landing-section alt" id="sectionFocus">
+      <div class="landing-section-grid reverse">
+        <div class="pomodoro-demo reveal" aria-hidden="true">
+          <svg class="pomodoro-demo-ring" viewBox="0 0 100 100">
+            <circle class="pomodoro-demo-track" cx="50" cy="50" r="44"></circle>
+            <circle class="pomodoro-demo-fill" cx="50" cy="50" r="44"></circle>
+          </svg>
+          <span class="pomodoro-demo-time">25:00</span>
+          <span class="pomodoro-demo-label">focus</span>
+        </div>
+        <div class="landing-section-copy reveal">
+          <p class="section-eyebrow">02 — pomodoro reading</p>
+          <h2 class="section-heading">A focus timer built for reading</h2>
+          <ul class="section-points">
+            <li>An integrated Pomodoro timer designed specifically for reading sessions.</li>
+            <li>Completing a focus session feeds straight into your Mind Forest's growth.</li>
+            <li>Rewards depth, not speed — there's no benefit to rushing a page.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- Ambient Reading Experience ---------- -->
+    <section class="landing-section" id="sectionAmbience">
+      <div class="landing-section-header reveal">
+        <p class="section-eyebrow">03 — ambient reading</p>
+        <h2 class="section-heading">A calm environment, on tap</h2>
+        <p class="section-lede">Rain, forest, café, ocean, library, fireplace, wind, and night — synthesized on the fly, adjustable, and never a spoken word or a melody to pull focus off the page. Tap one to hear it now.</p>
+      </div>
+      <div class="ambience-preview-grid reveal" id="ambiencePreviewGrid"></div>
+    </section>
+
+    <!-- ---------- Why Zine Reading Works ---------- -->
+    <section class="landing-section alt" id="sectionWhy">
+      <div class="landing-section-header reveal">
+        <p class="section-eyebrow">04 — why zine reading works</p>
+        <h2 class="section-heading">Pages, not an endless scroll</h2>
+      </div>
+      <div class="why-grid">
+        <div class="why-card reveal">
+          <div class="why-illustration why-illustration-stop" aria-hidden="true">
+            <div class="why-page"></div><div class="why-page"></div>
+            <div class="why-pin"></div>
+          </div>
+          <h3>Natural stopping points</h3>
+          <p>A page has an edge. Scroll has none — so a page is a place your mind can safely pause, without losing your place.</p>
+        </div>
+        <div class="why-card reveal">
+          <div class="why-illustration why-illustration-spatial" aria-hidden="true">
+            <div class="why-page"></div><div class="why-page"></div>
+            <div class="why-dot"></div>
+          </div>
+          <h3>Spatial memory</h3>
+          <p>"It was near the top of the left page" is a real memory cue in a paginated book — and a meaningless one in a scroll that never repeats a layout.</p>
+        </div>
+        <div class="why-card reveal">
+          <div class="why-illustration why-illustration-load" aria-hidden="true">
+            <div class="why-scroll-line"></div>
+            <div class="why-clean-page"></div>
+          </div>
+          <h3>Less cognitive load</h3>
+          <p>A fixed two-page spread is a bounded, predictable unit. Infinite scroll keeps re-rendering that boundary away, which costs attention you'd rather spend on the words.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- Explore the experience ---------- -->
+    <section class="landing-section" id="sectionShowcase">
+      <div class="showcase-inner reveal">
+        <p class="section-eyebrow">05 — see it for yourself</p>
+        <h2 class="section-heading">This isn't a screenshot</h2>
+        <p class="section-lede">The forest above is live — it's rendering from your own reading history right now, not a mockup. Open it full-screen to pan, tap a tree for its story, or drag one to a new spot.</p>
+        <button class="btn-primary showcase-btn" id="showcaseExploreBtn">⤢ open your forest</button>
+      </div>
+    </section>
+
+    <!-- ---------- Testimonials (placeholder) ---------- -->
+    <section class="landing-section alt" id="sectionTestimonials">
+      <div class="landing-section-header reveal">
+        <p class="section-eyebrow">06 — early readers</p>
+        <h2 class="section-heading">What people are saying</h2>
+        <p class="section-lede placeholder-flag">placeholder quotes — swap in real reader feedback here</p>
+      </div>
+      <div class="testimonial-grid reveal">
+        <blockquote class="testimonial-card">
+          <p>"I stopped dreading long PDFs once I could see my forest fill in."</p>
+          <cite>— a beta reader</cite>
+        </blockquote>
+        <blockquote class="testimonial-card">
+          <p>"The pomodoro timer is the first one I've actually kept using while reading."</p>
+          <cite>— a beta reader</cite>
+        </blockquote>
+        <blockquote class="testimonial-card">
+          <p>"Didn't expect a page-turn animation to make this much difference to focus."</p>
+          <cite>— a beta reader</cite>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- ---------- Sign-in CTA band ---------- -->
+    <section class="landing-cta reveal" id="sectionCta">
+      <h2>Ready to grow your forest?</h2>
+      <p>Sign in to carry your Mind Forest to any device — or just drop a file above, no account needed.</p>
+      <button id="ctaSignInBtn" class="account-google-btn landing-cta-btn">
+        <span class="account-google-icon">G</span> sign in with Google
+      </button>
+    </section>
+
+    <footer class="landing-footer">
+      <div class="landing-footer-inner">
+        <div class="landing-footer-brand">
+          <span class="landing-footer-logo">ZINE</span>
+          <p>a browser-native reader for pdf &amp; text zines</p>
+        </div>
+        <div class="landing-footer-links">
+          <a href="https://github.com/hirdav/zine" target="_blank" rel="noopener">GitHub</a>
+          <a href="library/README.md" target="_blank" rel="noopener">Library</a>
+          <a href="CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a>
+        </div>
+      </div>
+      <p class="landing-footer-credits">built on <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">pdf.js</a>, <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a> &amp; <a href="https://supabase.com/" target="_blank" rel="noopener">Supabase</a> — no other dependencies</p>
+    </footer>
   </div>
 
   <!-- Reader UI -->
@@ -136,8 +324,8 @@
             <p class="sound-panel-hint">a quiet backdrop to read against — pick one, or none</p>
             <div class="sound-section-label">noise</div>
             <div class="sound-grid" id="soundGridNoise"></div>
-            <div class="sound-section-label">nature</div>
-            <div class="sound-grid" id="soundGridNature"></div>
+            <div class="sound-section-label">ambience</div>
+            <div class="sound-grid" id="soundGridAmbience"></div>
             <div class="sound-volume-row">
               <span class="sound-vol-icon">🔈</span>
               <input type="range" id="soundVolume" min="0" max="100" value="45" title="Volume">
@@ -163,6 +351,7 @@
                   <div id="accountEmail" class="account-email"></div>
                 </div>
               </div>
+              <a href="profile.html" class="account-profile-link">📊 view profile</a>
               <button id="signOutBtn" class="account-signout-btn">sign out</button>
             </div>
           </div>
@@ -211,5 +400,6 @@
 
   <script src="vendor/supabase.umd.js"></script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="landing.js"></script>
 </body>
 </html>
