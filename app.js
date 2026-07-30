@@ -5,6 +5,8 @@ import * as forestState from './forest-state.js';
 import { MindForestScene } from './forest-scene.js';
 import * as pomodoro from './pomodoro.js';
 import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
+import * as auth from './auth.js';
+import * as cloudSync from './cloud-sync.js';
 
 (() => {
   'use strict';
@@ -82,6 +84,21 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
   const pomodoroStartPause = document.getElementById('pomodoroStartPause');
   const pomodoroReset = document.getElementById('pomodoroReset');
   const pomodoroSkip = document.getElementById('pomodoroSkip');
+
+  const accountToggle = document.getElementById('accountToggle');
+  const accountPanel = document.getElementById('accountPanel');
+  const accountSignedOutPanel = document.getElementById('accountSignedOutPanel');
+  const accountSignedInPanel = document.getElementById('accountSignedInPanel');
+  const accountAvatar = document.getElementById('accountAvatar');
+  const accountName = document.getElementById('accountName');
+  const accountEmail = document.getElementById('accountEmail');
+  const googleSignInBtn = document.getElementById('googleSignInBtn');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const googleSignInBtnLanding = document.getElementById('googleSignInBtnLanding');
+  const accountSignedInLanding = document.getElementById('accountSignedInLanding');
+  const accountAvatarLanding = document.getElementById('accountAvatarLanding');
+  const accountNameLanding = document.getElementById('accountNameLanding');
+  const signOutBtnLanding = document.getElementById('signOutBtnLanding');
 
   // ---------- State ----------
   const state = {
@@ -212,7 +229,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     state.zoom = 1.0;
     state.thumbsRendered = false;
     state.forestBookKey = forestState.bookKeyFor(name, state.numPages);
-    forestState.recordSessionStart();
+    forestState.recordSessionStart(state.forestBookKey, name, 'pdf', state.numPages);
     clearPageCache();
     docTitle.textContent = name;
     openReader();
@@ -230,7 +247,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     state.zoom = 1.0;
     state.thumbsRendered = false;
     state.forestBookKey = forestState.bookKeyFor(name, state.numPages);
-    forestState.recordSessionStart();
+    forestState.recordSessionStart(state.forestBookKey, name, 'text', state.numPages);
     clearPageCache();
     docTitle.textContent = name;
     openReader();
@@ -266,6 +283,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
     if (forestScene) forestScene.stop(); // landing teaser is hidden now
   }
   function closeReader() {
+    forestState.recordSessionEnd();
     dragAbort.abort();
     readerEl.classList.add('hidden');
     dropzone.classList.remove('hidden');
@@ -1372,6 +1390,77 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
       case '-': case '_':
         zoomOutBtn.click(); break;
     }
+  });
+
+  // ---------- Account ----------
+  function isAccountPanelOpen() { return !accountPanel.classList.contains('hidden'); }
+  function openAccountPanel() {
+    accountPanel.classList.remove('hidden');
+    accountToggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeAccountPanel() {
+    accountPanel.classList.add('hidden');
+    accountToggle.setAttribute('aria-expanded', 'false');
+  }
+  accountToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isAccountPanelOpen()) closeAccountPanel(); else openAccountPanel();
+  });
+  accountPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => { if (isAccountPanelOpen()) closeAccountPanel(); });
+
+  function updateAccountUI(session) {
+    const user = session ? session.user : null;
+    const signedIn = !!user;
+    accountSignedOutPanel.classList.toggle('hidden', signedIn);
+    accountSignedInPanel.classList.toggle('hidden', !signedIn);
+    googleSignInBtnLanding.classList.toggle('hidden', signedIn);
+    accountSignedInLanding.classList.toggle('hidden', !signedIn);
+    accountToggle.classList.toggle('active', signedIn);
+
+    if (signedIn) {
+      const meta = user.user_metadata || {};
+      const name = meta.full_name || meta.name || user.email || 'reader';
+      const avatarUrl = meta.avatar_url || '';
+      accountName.textContent = name;
+      accountEmail.textContent = user.email || '';
+      accountNameLanding.textContent = name;
+      [accountAvatar, accountAvatarLanding].forEach((img) => {
+        if (avatarUrl) { img.src = avatarUrl; img.style.visibility = 'visible'; }
+        else { img.removeAttribute('src'); img.style.visibility = 'hidden'; }
+      });
+    }
+  }
+
+  function handleSignIn() {
+    auth.signInWithGoogle().catch((err) => {
+      showError('sign-in failed: ' + (err && err.message ? err.message : err));
+    });
+  }
+  googleSignInBtn.addEventListener('click', handleSignIn);
+  googleSignInBtnLanding.addEventListener('click', handleSignIn);
+
+  function handleSignOut() {
+    closeAccountPanel();
+    auth.signOut();
+  }
+  signOutBtn.addEventListener('click', handleSignOut);
+  signOutBtnLanding.addEventListener('click', handleSignOut);
+
+  // Reconcile once per transition into signed-in (covers both a fresh
+  // Google sign-in and rehydrating a persisted session on page load) — never
+  // on every auth-state ping, which would otherwise re-run the cloud fetch
+  // on unrelated token refreshes.
+  let wasSignedIn = false;
+  auth.onAuthChange((session) => {
+    updateAccountUI(session);
+    const signedIn = !!session;
+    if (signedIn && !wasSignedIn) {
+      cloudSync.fetchCloudTotals().then((totals) => {
+        if (totals) forestState.reconcileFromCloud(totals);
+      });
+    }
+    wasSignedIn = signedIn;
   });
 
   let resizeTimer = null;

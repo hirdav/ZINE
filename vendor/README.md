@@ -1,8 +1,9 @@
 # vendor/
 
-Third-party code, bundled locally so the app has no CDN dependency and works fully offline.
+Third-party code, bundled locally so the app has no CDN dependency at runtime — everything here is a single pre-built file, so nothing needs a bundler or `npm install` to run. Reading itself is still fully client-side and works offline; account features (sign-in, cross-device sync) need network access to Supabase, same as any backend-backed app would.
 
 - `pdf.min.mjs`, `pdf.worker.min.mjs` — [pdf.js](https://github.com/mozilla/pdf.js) by Mozilla, licensed under [Apache License 2.0](https://github.com/mozilla/pdf.js/blob/master/LICENSE). Not modified from the upstream build.
 - `three.module.min.js` — [three.js](https://github.com/mrdoob/three.js) r160, licensed under [MIT](https://github.com/mrdoob/three.js/blob/dev/LICENSE). Not modified from the upstream build (`build/three.module.min.js` from the `three` npm package). The Mind Forest itself is layered SVG, not WebGL — this is used for exactly one thing, a small additive-glow firefly particle field at night, gated behind its own in-forest unlock.
+- `supabase.umd.js` — [supabase-js](https://github.com/supabase/supabase-js) v2, licensed under [MIT](https://github.com/supabase/supabase-js/blob/master/LICENSE). Not modified from the upstream build (`dist/umd/supabase.js` from the `@supabase/supabase-js` npm package — the only build in that package with no bare-specifier imports, so it's the one that actually runs from a plain `<script>` tag with no bundler). Loaded as a classic script (not a module), exposing `window.supabase.createClient(...)`; `auth.js` is the only file that touches it.
 
-To update: download the matching `pdf.min.mjs` + `pdf.worker.min.mjs` pair for a newer pdf.js release (they must be from the same version) and replace both files here. For three.js, `npm pack three@<version>` and pull `build/three.module.min.js` out of the tarball.
+To update: download the matching `pdf.min.mjs` + `pdf.worker.min.mjs` pair for a newer pdf.js release (they must be from the same version) and replace both files here. For three.js, `npm pack three@<version>` and pull `build/three.module.min.js` out of the tarball. For supabase-js, `npm pack @supabase/supabase-js@<version>` and pull `dist/umd/supabase.js` out of the tarball.
