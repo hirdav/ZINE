@@ -45,7 +45,7 @@ import * as cloudSync from './cloud-sync.js';
   const soundOffBtn = document.getElementById('soundOffBtn');
   const soundVolume = document.getElementById('soundVolume');
   const soundGridNoise = document.getElementById('soundGridNoise');
-  const soundGridNature = document.getElementById('soundGridNature');
+  const soundGridAmbience = document.getElementById('soundGridAmbience');
 
   const librarySection = document.getElementById('librarySection');
   const libraryGrid = document.getElementById('libraryGrid');
@@ -902,7 +902,7 @@ import * as cloudSync from './cloud-sync.js';
   }
 
   function buildSoundPanel(recentId) {
-    const containers = { noise: soundGridNoise, nature: soundGridNature };
+    const containers = { noise: soundGridNoise, ambience: soundGridAmbience };
     SOUND_GROUPS.forEach((group) => {
       const container = containers[group.id];
       if (!container) return;
@@ -1068,6 +1068,8 @@ import * as cloudSync from './cloud-sync.js';
   }
   forestExploreBtn.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
   forestExploreBtnLanding.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
+  const showcaseExploreBtn = document.getElementById('showcaseExploreBtn');
+  if (showcaseExploreBtn) showcaseExploreBtn.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
   forestExploreClose.addEventListener('click', () => closeForestExplore());
   forestExploreOverlay.addEventListener('click', (e) => { if (e.target === forestExploreOverlay) closeForestExplore(); });
   // the explore modal can be open from the landing page too, where the
@@ -1409,6 +1411,10 @@ import * as cloudSync from './cloud-sync.js';
   accountPanel.addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', () => { if (isAccountPanelOpen()) closeAccountPanel(); });
 
+  const navSignInBtn = document.getElementById('navSignInBtn');
+  const ctaSignInBtn = document.getElementById('ctaSignInBtn');
+  const sectionCta = document.getElementById('sectionCta');
+
   function updateAccountUI(session) {
     const user = session ? session.user : null;
     const signedIn = !!user;
@@ -1417,6 +1423,8 @@ import * as cloudSync from './cloud-sync.js';
     googleSignInBtnLanding.classList.toggle('hidden', signedIn);
     accountSignedInLanding.classList.toggle('hidden', !signedIn);
     accountToggle.classList.toggle('active', signedIn);
+    if (navSignInBtn) navSignInBtn.classList.toggle('hidden', signedIn);
+    if (sectionCta) sectionCta.classList.toggle('hidden', signedIn);
 
     if (signedIn) {
       const meta = user.user_metadata || {};
@@ -1439,6 +1447,8 @@ import * as cloudSync from './cloud-sync.js';
   }
   googleSignInBtn.addEventListener('click', handleSignIn);
   googleSignInBtnLanding.addEventListener('click', handleSignIn);
+  if (navSignInBtn) navSignInBtn.addEventListener('click', handleSignIn);
+  if (ctaSignInBtn) ctaSignInBtn.addEventListener('click', handleSignIn);
 
   function handleSignOut() {
     closeAccountPanel();

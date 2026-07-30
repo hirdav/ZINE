@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE — Your Reading Journey</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="profile.css">
+</head>
+<body class="profile-body">
+
+  <div id="profileGate" class="profile-gate hidden">
+    <p>sign in to see your reading journey</p>
+    <a href="index.html" class="btn-primary">back to zine</a>
+  </div>
+
+  <div id="profileRoot" class="profile-root hidden">
+
+    <header class="profile-topbar">
+      <a href="index.html" class="profile-back" title="Back to reader">⟵ zine</a>
+      <div class="profile-topbar-user">
+        <img id="pUserAvatar" class="account-avatar" alt="">
+        <span id="pUserName" class="account-name"></span>
+      </div>
+    </header>
+
+    <main class="profile-main">
+
+      <!-- ---------- Overview ---------- -->
+      <section class="profile-hero">
+        <img id="pHeroAvatar" class="profile-hero-avatar" alt="">
+        <div class="profile-hero-text">
+          <h1 id="pHeroName">reader</h1>
+          <p id="pHeroSub">building a Mind Forest, one page at a time</p>
+        </div>
+      </section>
+
+      <section class="stat-grid" id="statGrid">
+        <div class="stat-tile"><span class="stat-tile-icon">🔥</span><b id="sStreak">0</b><span>day streak</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">📚</span><b id="sBooks">0</b><span>books read</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">📄</span><b id="sPages">0</b><span>pages read</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">⏳</span><b id="sTime">0h</b><span>reading time</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">⭐</span><b id="sLevel">1</b><span>reading level</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">🌲</span><b id="sForestLevel">0</b><span>forest level</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">⏱</span><b id="sFocusSessions">0</b><span>focus sessions</span></div>
+        <div class="stat-tile"><span class="stat-tile-icon">✨</span><b id="sXp">0</b><span>xp earned</span></div>
+      </section>
+
+      <!-- ---------- Mind Forest ---------- -->
+      <section class="profile-section" id="pForestSection">
+        <div class="profile-section-header">
+          <h2>your mind forest</h2>
+          <div class="forest-filter-row">
+            <select id="forestFilterDoc" class="profile-select">
+              <option value="">all documents</option>
+            </select>
+            <select id="forestFilterRange" class="profile-select">
+              <option value="all">all time</option>
+              <option value="7">last 7 days</option>
+              <option value="30">last 30 days</option>
+              <option value="90">last 90 days</option>
+            </select>
+          </div>
+        </div>
+        <div class="profile-forest-layout">
+          <div id="profileForestCanvasSlot" class="forest-canvas-slot profile-forest-slot"></div>
+          <div class="forest-filter-results">
+            <p class="forest-filter-hint">matching growth events for the filter above — tap a tree in the scene itself for its full story</p>
+            <div id="forestFilterList" class="forest-filter-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Reading Analytics ---------- -->
+      <section class="profile-section" id="pAnalyticsSection">
+        <div class="profile-section-header"><h2>reading analytics</h2></div>
+
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <h3>reading calendar <span class="analytics-card-hint">last 12 weeks</span></h3>
+            <div id="heatmapGrid" class="heatmap-grid"></div>
+          </div>
+
+          <div class="analytics-card">
+            <h3>consistency</h3>
+            <div class="analytics-metric-row">
+              <div class="analytics-metric"><b id="mConsistency">0%</b><span>active days, last 30</span></div>
+              <div class="analytics-metric"><b id="mAvgSession">0m</b><span>avg session length</span></div>
+              <div class="analytics-metric"><b id="mFocusScore">0%</b><span>focus score</span></div>
+            </div>
+            <p class="analytics-card-hint">focus score = share of reading time spent in completed Pomodoro sessions</p>
+          </div>
+
+          <div class="analytics-card">
+            <h3>streak history</h3>
+            <div id="streakHistoryList" class="streak-history-list"></div>
+          </div>
+
+          <div class="analytics-card">
+            <h3>recent sessions</h3>
+            <div id="recentSessionsList" class="recent-sessions-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Library ---------- -->
+      <section class="profile-section" id="pLibrarySection">
+        <div class="profile-section-header"><h2>library</h2></div>
+        <div id="profileLibraryGrid" class="profile-library-grid"></div>
+        <p id="profileLibraryEmpty" class="library-empty hidden">no synced reading yet — open a book while signed in and it'll show up here.</p>
+      </section>
+
+      <!-- ---------- Growth Timeline ---------- -->
+      <section class="profile-section" id="pTimelineSection">
+        <div class="profile-section-header"><h2>growth timeline</h2></div>
+        <div id="growthTimelineList" class="growth-timeline"></div>
+      </section>
+
+      <!-- ---------- Achievements ---------- -->
+      <section class="profile-section" id="pAchievementsSection">
+        <div class="profile-section-header"><h2>achievements</h2></div>
+        <div id="achievementsGrid" class="achievements-grid"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="profileLoading" class="profile-loading">
+    <div class="loader"></div>
+    <p>loading your reading journey…</p>
+  </div>
+
+  <div id="achievementToast" class="achievement-toast hidden"></div>
+
+  <script src="vendor/supabase.umd.js"></script>
+  <script type="module" src="profile.js"></script>
+</body>
+</html>
