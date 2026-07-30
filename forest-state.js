@@ -13,6 +13,15 @@
 // around it — custom layout lives here too, in itemPositions); celebrate.js
 // turns emitted events into on-screen moments; app.js / pomodoro.js call the
 // record* functions at the right lifecycle points.
+//
+// localStorage stays the source of truth for the live session — it's
+// synchronous and never blocks reading. Signing in adds cloud-sync.js on
+// top: every GP-earning moment is also pushed to Supabase as an
+// append-only growth_event (best-effort, fire-and-forget), and
+// reconcileFromCloud() catches this device up with whatever an account
+// already has from reading elsewhere.
+
+import * as cloudSync from './cloud-sync.js';
 
 const STORAGE_KEY = 'zine.forest.v1';
 
@@ -148,20 +157,29 @@ function checkUnlocks() {
       gp: state.gp,
     };
     emit({ type: 'unlock', item, index });
+    // marker event, not a GP-earning one — growth_value 0 flags "this GP
+    // total crossed a threshold" without double-counting the GP itself
+    cloudSync.insertGrowthEvent({ growthType: item.kind, growthValue: 0 }).catch(() => {});
   }
 }
 
-function addGP(amount, reason) {
+function addGP(amount, reason, meta = {}) {
   if (amount <= 0) return;
   state.gp += amount;
   checkUnlocks();
   save();
+  cloudSync.insertGrowthEvent({
+    growthType: reason,
+    growthValue: amount,
+    pagesRead: meta.pagesRead || 0,
+    timeSpentSeconds: meta.timeSpentSeconds || 0,
+  }).catch(() => {});
 }
 
 // ---------- public: recording activity ----------
 
 // Call once each time a book/library item is opened (a "reading session").
-export function recordSessionStart() {
+export function recordSessionStart(bookKey, fileName, mode, numPages) {
   const today = todayStr();
   state.totalSessions += 1;
   if (state.lastActiveDate !== today) {
@@ -176,6 +194,16 @@ export function recordSessionStart() {
   } else {
     save();
   }
+  if (bookKey && fileName && numPages) {
+    cloudSync.startSession(bookKey, fileName, mode, numPages).catch(() => {});
+  }
+}
+
+// Call when the reader closes the current book — writes the cloud session's
+// final tally. No-op locally; localStorage progress is already saved
+// incrementally by recordPageProgress.
+export function recordSessionEnd() {
+  cloudSync.endSession().catch(() => {});
 }
 
 // Call whenever the furthest page reached in a book may have advanced.
@@ -190,7 +218,8 @@ export function recordPageProgress(bookKey, pageReached, numPages) {
   const newPages = pageReached - bp.maxPage;
   bp.maxPage = pageReached;
   state.totalPagesTurned += newPages;
-  addGP(newPages, 'pages');
+  cloudSync.trackPagesInSession(newPages);
+  addGP(newPages, 'pages', { pagesRead: newPages });
 
   [25, 50, 75, 100].forEach((pct) => {
     if (!bp.milestones[pct] && (bp.maxPage / bp.numPages) * 100 >= pct) {
@@ -206,9 +235,40 @@ export function recordPageProgress(bookKey, pageReached, numPages) {
 export function recordFocusSessionComplete(minutes) {
   state.totalFocusMinutes += minutes;
   state.focusSessionsCompleted += 1;
-  addGP(18, 'focus');
+  addGP(18, 'focus', { timeSpentSeconds: Math.round(minutes * 60) });
   save();
   emit({ type: 'focus-complete', minutes, totalFocusMinutes: state.totalFocusMinutes });
+}
+
+// Cross-device catch-up, called once after sign-in resolves. Takes the max
+// of every counter (never regresses a device that's ahead), then silently
+// re-derives unlocks up to the merged GP total — no celebration toasts, since
+// these weren't just earned, they're being caught up on.
+export function reconcileFromCloud(totals) {
+  if (!totals) return;
+  state.gp = Math.max(state.gp, totals.totalGp);
+  state.totalSessions = Math.max(state.totalSessions, totals.totalSessions);
+  state.totalPagesTurned = Math.max(state.totalPagesTurned, totals.totalPagesTurned);
+  state.totalFocusMinutes = Math.max(state.totalFocusMinutes, totals.totalFocusMinutes);
+  state.focusSessionsCompleted = Math.max(state.focusSessionsCompleted, totals.focusSessionsCompleted);
+  state.streak = Math.max(state.streak, totals.streak);
+  state.longestStreak = Math.max(state.longestStreak, totals.longestStreak);
+
+  const target = unlockedCountForGP(state.gp);
+  while (state.unlockedIds.length < target) {
+    const index = state.unlockedIds.length;
+    const item = unlockAtIndex(index);
+    state.unlockedIds.push(item.id);
+    state.unlockRecords[item.id] = state.unlockRecords[item.id] || {
+      unlockedAt: Date.now(),
+      streak: state.streak,
+      totalSessions: state.totalSessions,
+      totalFocusMinutes: state.totalFocusMinutes,
+      gp: state.gp,
+    };
+  }
+  save();
+  emit({ type: 'reconciled' });
 }
 
 export function markOnboardingSeen() {

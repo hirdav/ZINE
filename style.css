@@ -1149,6 +1149,125 @@ html, body {
 .onboarding-skip:hover { color: var(--paper); }
 .onboarding-next { padding: 11px 28px; }
 
+/* ---------- Account / auth ---------- */
+.account-anchor { position: relative; }
+
+.account-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  z-index: 50;
+  animation: soundPanelIn .14s ease;
+}
+
+.account-hint {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0 0 12px;
+}
+
+.account-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 11.5px;
+  letter-spacing: .3px;
+  padding: 9px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+.account-google-btn:hover { border-color: var(--accent-2); color: var(--accent-2); background: rgba(255,255,255,0.07); }
+
+.account-google-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper);
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.account-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.account-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  object-fit: cover;
+  background: rgba(255,255,255,0.06);
+}
+
+.account-profile-text { min-width: 0; }
+.account-name {
+  font-size: 12px;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-email {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-signout-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 10.5px;
+  letter-spacing: .3px;
+  text-transform: lowercase;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease;
+}
+.account-signout-btn:hover { border-color: var(--accent); color: var(--accent-2); }
+
+.account-row-landing {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+}
+.account-row-landing .account-google-btn { width: auto; padding: 8px 18px; }
+
+.account-signedin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-signedin .account-name { max-width: 140px; }
+.account-signedin .account-signout-btn { width: auto; padding: 6px 10px; }
+
 /* ---------- Micro-interactions ---------- */
 .icon-btn, .btn-primary, .pomodoro-side-btn, .sound-off-btn, .library-refresh {
   position: relative;

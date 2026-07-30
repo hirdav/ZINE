@@ -23,7 +23,18 @@
         <input type="file" id="fileInput" accept=".pdf,.txt,.md" hidden>
       </div>
 
-      <p class="privacy-note">100% local — nothing leaves your browser. no uploads, no database.</p>
+      <p class="privacy-note">reading stays 100% local — nothing leaves your browser. signing in only syncs your Mind Forest, so it follows you to another device.</p>
+
+      <div class="account-row-landing">
+        <button id="googleSignInBtnLanding" class="account-google-btn">
+          <span class="account-google-icon">G</span> sign in with Google
+        </button>
+        <div id="accountSignedInLanding" class="account-signedin hidden">
+          <img id="accountAvatarLanding" class="account-avatar" alt="">
+          <span id="accountNameLanding" class="account-name"></span>
+          <button id="signOutBtnLanding" class="account-signout-btn" title="Sign out">sign out</button>
+        </div>
+      </div>
     </div>
 
     <div id="forestTeaser" class="forest-teaser">
@@ -135,6 +146,27 @@
           </div>
         </div>
         <button id="fullscreenBtn" class="icon-btn" title="Fullscreen (F)">⛶</button>
+        <div class="account-anchor">
+          <button id="accountToggle" class="icon-btn" title="Account">👤</button>
+          <div id="accountPanel" class="account-panel hidden">
+            <div id="accountSignedOutPanel">
+              <p class="account-hint">sign in to sync your Mind Forest across devices</p>
+              <button id="googleSignInBtn" class="account-google-btn">
+                <span class="account-google-icon">G</span> sign in with Google
+              </button>
+            </div>
+            <div id="accountSignedInPanel" class="hidden">
+              <div class="account-profile">
+                <img id="accountAvatar" class="account-avatar" alt="">
+                <div class="account-profile-text">
+                  <div id="accountName" class="account-name"></div>
+                  <div id="accountEmail" class="account-email"></div>
+                </div>
+              </div>
+              <button id="signOutBtn" class="account-signout-btn">sign out</button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -177,6 +209,7 @@
     </div>
   </div>
 
+  <script src="vendor/supabase.umd.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
