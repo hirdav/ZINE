@@ -1,9 +1,34 @@
 // The marketing landing page: scroll-reveal, nav/CTA smooth-scrolling, the
-// tiny growth-stage and ambience-preview demos. Deliberately independent of
-// app.js — it only touches the new marketing sections (plus sound.js
-// directly, for the "tap to hear it" ambience cards), so none of the reader
-// logic needs to know this page exists.
+// tiny growth-stage and ambience-preview demos, and the sign-in buttons.
+// Deliberately independent of app.js and every other app module except
+// auth.js (to redirect an already-signed-in visitor away) and sound.js (for
+// the "tap to hear it" ambience cards) — a visitor who isn't signed in
+// should never load forest-state.js, cloud-sync.js, or anything else that
+// assumes there's an account behind it.
 import { SOUND_GROUPS, soundEngine } from './sound.js';
+import * as auth from './auth.js';
+
+// Signed-in visitors belong on the dashboard, not here — checked before
+// anything below renders. html.auth-checking (set by default in the markup)
+// keeps the page invisible until this resolves, so there's no marketing
+// flash before the redirect fires.
+auth.whenReady().then(() => {
+  if (auth.isSignedIn()) {
+    window.location.href = 'dashboard.html';
+  } else {
+    document.documentElement.classList.remove('auth-checking');
+  }
+});
+
+function handleSignIn() {
+  auth.signInWithGoogle().catch((err) => {
+    console.warn('[landing] sign-in failed', err);
+  });
+}
+['navSignInBtn', 'heroSignInBtn', 'ctaSignInBtn'].forEach((id) => {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener('click', handleSignIn);
+});
 
 (() => {
   'use strict';
@@ -100,16 +125,5 @@ import { SOUND_GROUPS, soundEngine } from './sound.js';
       });
       grid.appendChild(card);
     });
-
-    // stop the preview the moment a real file gets opened or the reader
-    // takes over sound duty — a marketing preview shouldn't keep playing
-    // once someone's actually reading
-    const fileInput = document.getElementById('fileInput');
-    const dropTarget = document.getElementById('dropTarget');
-    const stopPreview = () => {
-      grid.querySelectorAll('.ambience-preview-card.playing').forEach((c) => c.classList.remove('playing'));
-    };
-    if (fileInput) fileInput.addEventListener('change', () => { soundEngine.stop(); stopPreview(); });
-    if (dropTarget) dropTarget.addEventListener('drop', () => { soundEngine.stop(); stopPreview(); });
   }
 })();

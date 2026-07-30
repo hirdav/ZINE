@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE — Library</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="app-body">
+
+  <div id="appNav" class="app-nav"></div>
+
+  <!-- Library / upload screen -->
+  <div id="dropzone" class="dropzone app-page">
+    <div class="drop-inner">
+      <h1 class="app-page-title">your library</h1>
+      <p class="app-page-sub">open something you've read before, or bring in a new file</p>
+
+      <div class="drop-target" id="dropTarget">
+        <p class="drop-label">drag &amp; drop a <b>.pdf</b>, <b>.txt</b> or <b>.md</b> file here</p>
+        <p class="drop-or">— or —</p>
+        <button id="fileBtn" class="btn-primary">choose a file</button>
+        <input type="file" id="fileInput" accept=".pdf,.txt,.md" hidden>
+      </div>
+    </div>
+
+    <div id="librarySection" class="library-section hidden">
+      <div class="library-header">
+        <span class="library-title">library/ folder</span>
+        <button id="libraryRefresh" class="library-refresh" title="Rescan the library/ folder">⟳ rescan</button>
+      </div>
+      <div id="libraryGrid" class="library-grid"></div>
+      <p id="libraryEmpty" class="library-empty hidden">no books yet — drop a <b>.pdf</b>, <b>.txt</b>, or <b>.md</b> into the <code>library/</code> folder and rescan.</p>
+    </div>
+  </div>
+
+  <!-- Reader UI -->
+  <div id="reader" class="reader hidden">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="backBtn" class="icon-btn" title="Back to library (Esc)">⟵</button>
+        <span id="docTitle" class="doc-title">untitled</span>
+        <span id="streakBadgeTopbar" class="streak-badge" title="Daily reading streak"><span class="streak-flame">🔥</span><b id="streakCount">0</b></span>
+      </div>
+      <div class="topbar-center">
+        <button id="prevBtn" class="icon-btn" title="Previous (←)">‹</button>
+        <span id="pageIndicator" class="page-indicator">1 / 1</span>
+        <button id="nextBtn" class="icon-btn" title="Next (→)">›</button>
+      </div>
+      <div class="topbar-right">
+        <button id="spreadToggle" class="icon-btn" title="Toggle single/spread view">⧉</button>
+        <button id="zoomOutBtn" class="icon-btn" title="Zoom out">−</button>
+        <span id="zoomLevel" class="zoom-level">100%</span>
+        <button id="zoomInBtn" class="icon-btn" title="Zoom in">+</button>
+        <button id="thumbsToggle" class="icon-btn" title="Toggle thumbnails (T)">▤</button>
+        <div class="pomodoro-anchor">
+          <button id="pomodoroToggle" class="icon-btn" title="Focus timer (P)">⏱</button>
+          <div id="pomodoroPanel" class="pomodoro-panel hidden">
+            <div class="pomodoro-header">
+              <span id="pomodoroModeLabel" class="pomodoro-mode-label">focus</span>
+              <span id="pomodoroCycleLabel" class="pomodoro-cycle-label"></span>
+            </div>
+            <div class="pomodoro-ring-wrap">
+              <svg class="pomodoro-ring" viewBox="0 0 100 100">
+                <circle class="pomodoro-ring-track" cx="50" cy="50" r="44"></circle>
+                <circle id="pomodoroRingFill" class="pomodoro-ring-fill" cx="50" cy="50" r="44"></circle>
+              </svg>
+              <span id="pomodoroTime" class="pomodoro-time">25:00</span>
+            </div>
+            <div class="pomodoro-controls">
+              <button id="pomodoroStartPause" class="btn-primary pomodoro-btn">start</button>
+              <button id="pomodoroReset" class="pomodoro-side-btn" title="Reset">↺</button>
+              <button id="pomodoroSkip" class="pomodoro-side-btn" title="Skip to next phase">⏭</button>
+            </div>
+            <p class="pomodoro-hint">focus sessions grow your Mind Forest</p>
+          </div>
+        </div>
+        <div class="forest-anchor">
+          <button id="forestToggle" class="icon-btn" title="Mind Forest (G)">🌲</button>
+          <div id="forestPanel" class="forest-panel hidden">
+            <div class="forest-panel-header">
+              <span>mind forest</span>
+              <span id="forestGpLabel" class="forest-gp-label">0 gp</span>
+            </div>
+            <div id="forestPanelCanvasSlot" class="forest-canvas-slot forest-canvas-slot-panel"></div>
+            <button id="forestExploreBtn" class="forest-explore-btn">⤢ explore your forest</button>
+            <div class="forest-next-row">
+              <span id="forestPanelNextLabel">Sprouting…</span>
+              <div class="forest-progress-track"><div id="forestPanelNextFill" class="forest-progress-fill"></div></div>
+            </div>
+            <div class="forest-stats-grid">
+              <div class="forest-stat"><b id="statStreak">0</b><span>day streak</span></div>
+              <div class="forest-stat"><b id="statSessions">0</b><span>sessions</span></div>
+              <div class="forest-stat"><b id="statFocusMin">0</b><span>focus min</span></div>
+              <div class="forest-stat"><b id="statUnlocked">0</b><span>unlocked</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sound-anchor">
+          <button id="soundToggle" class="icon-btn" title="Ambient sound (S)">♪</button>
+          <div id="soundPanel" class="sound-panel hidden">
+            <div class="sound-panel-header">
+              <span>ambient sound</span>
+              <button id="soundOffBtn" class="sound-off-btn">off</button>
+            </div>
+            <p class="sound-panel-hint">a quiet backdrop to read against — pick one, or none</p>
+            <div class="sound-section-label">noise</div>
+            <div class="sound-grid" id="soundGridNoise"></div>
+            <div class="sound-section-label">ambience</div>
+            <div class="sound-grid" id="soundGridAmbience"></div>
+            <div class="sound-volume-row">
+              <span class="sound-vol-icon">🔈</span>
+              <input type="range" id="soundVolume" min="0" max="100" value="45" title="Volume">
+              <span class="sound-vol-icon">🔊</span>
+            </div>
+          </div>
+        </div>
+        <button id="fullscreenBtn" class="icon-btn" title="Fullscreen (F)">⛶</button>
+      </div>
+    </header>
+
+    <div class="reader-body">
+      <!-- Thumbnail rail -->
+      <aside id="thumbRail" class="thumb-rail hidden">
+        <div id="thumbList" class="thumb-list"></div>
+      </aside>
+
+      <!-- Stage -->
+      <main id="stage" class="stage">
+        <button id="edgePrev" class="edge-nav edge-prev" title="Previous page">‹</button>
+        <div id="book" class="book"></div>
+        <button id="edgeNext" class="edge-nav edge-next" title="Next page">›</button>
+      </main>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-track">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+  </div>
+
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loader"></div>
+    <p id="loadingText">loading…</p>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="onboardingOverlay" class="onboarding-overlay hidden"></div>
+
+  <div id="forestExploreOverlay" class="forest-explore-overlay hidden">
+    <div class="forest-explore-modal">
+      <div class="forest-explore-header">
+        <span>your mind forest</span>
+        <button id="forestExploreClose" class="icon-btn" title="Close">✕</button>
+      </div>
+      <div id="forestExploreCanvasSlot" class="forest-canvas-slot forest-canvas-slot-explore"></div>
+      <p class="forest-explore-hint">drag the background to pan · tap a tree for its story · drag a tree or creature to replant it</p>
+    </div>
+  </div>
+
+  <script src="vendor/supabase.umd.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -7,9 +7,16 @@ import * as pomodoro from './pomodoro.js';
 import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 import * as auth from './auth.js';
 import * as cloudSync from './cloud-sync.js';
+import { requireAuth, mountAppNav } from './app-nav.js';
 
-(() => {
+(async () => {
   'use strict';
+
+  // The library/reader page is app-only — a visitor who isn't signed in
+  // gets bounced straight back to the marketing site before any of this
+  // (or a stray fetch to Supabase) ever runs.
+  if (!(await requireAuth())) return;
+  mountAppNav(document.getElementById('appNav'), 'library');
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
 
@@ -53,11 +60,6 @@ import * as cloudSync from './cloud-sync.js';
   const libraryRefresh = document.getElementById('libraryRefresh');
 
   const streakCount = document.getElementById('streakCount');
-  const streakCountLanding = document.getElementById('streakCountLanding');
-  const streakLabelLanding = document.getElementById('streakLabelLanding');
-  const forestTeaserCanvasSlot = document.getElementById('forestTeaserCanvasSlot');
-  const forestNextLabelLanding = document.getElementById('forestNextLabelLanding');
-  const forestNextFillLanding = document.getElementById('forestNextFillLanding');
 
   const forestToggle = document.getElementById('forestToggle');
   const forestPanel = document.getElementById('forestPanel');
@@ -70,7 +72,6 @@ import * as cloudSync from './cloud-sync.js';
   const statFocusMin = document.getElementById('statFocusMin');
   const statUnlocked = document.getElementById('statUnlocked');
   const forestExploreBtn = document.getElementById('forestExploreBtn');
-  const forestExploreBtnLanding = document.getElementById('forestExploreBtnLanding');
   const forestExploreOverlay = document.getElementById('forestExploreOverlay');
   const forestExploreCanvasSlot = document.getElementById('forestExploreCanvasSlot');
   const forestExploreClose = document.getElementById('forestExploreClose');
@@ -84,21 +85,6 @@ import * as cloudSync from './cloud-sync.js';
   const pomodoroStartPause = document.getElementById('pomodoroStartPause');
   const pomodoroReset = document.getElementById('pomodoroReset');
   const pomodoroSkip = document.getElementById('pomodoroSkip');
-
-  const accountToggle = document.getElementById('accountToggle');
-  const accountPanel = document.getElementById('accountPanel');
-  const accountSignedOutPanel = document.getElementById('accountSignedOutPanel');
-  const accountSignedInPanel = document.getElementById('accountSignedInPanel');
-  const accountAvatar = document.getElementById('accountAvatar');
-  const accountName = document.getElementById('accountName');
-  const accountEmail = document.getElementById('accountEmail');
-  const googleSignInBtn = document.getElementById('googleSignInBtn');
-  const signOutBtn = document.getElementById('signOutBtn');
-  const googleSignInBtnLanding = document.getElementById('googleSignInBtnLanding');
-  const accountSignedInLanding = document.getElementById('accountSignedInLanding');
-  const accountAvatarLanding = document.getElementById('accountAvatarLanding');
-  const accountNameLanding = document.getElementById('accountNameLanding');
-  const signOutBtnLanding = document.getElementById('signOutBtnLanding');
 
   // ---------- State ----------
   const state = {
@@ -218,6 +204,15 @@ import * as cloudSync from './cloud-sync.js';
 
   // core loaders — used both by direct file-picker/drop and by opening a
   // library item fetched from the library/ folder
+  // Lightweight local bookkeeping (not the cloud economy) purely so the
+  // dashboard's "Read"/resume shortcuts know what to reopen without a
+  // network round-trip — only meaningful for library/ files, since an
+  // ad-hoc drag-and-drop upload can't be refetched by name.
+  function rememberLastOpened(name, mode) {
+    try { localStorage.setItem('zine.lastOpened', JSON.stringify({ name, mode, ts: Date.now() })); }
+    catch (e) { /* private mode etc */ }
+  }
+
   async function loadPdfData(name, arrayBuffer) {
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
@@ -230,6 +225,7 @@ import * as cloudSync from './cloud-sync.js';
     state.thumbsRendered = false;
     state.forestBookKey = forestState.bookKeyFor(name, state.numPages);
     forestState.recordSessionStart(state.forestBookKey, name, 'pdf', state.numPages);
+    rememberLastOpened(name, 'pdf');
     clearPageCache();
     docTitle.textContent = name;
     openReader();
@@ -248,6 +244,7 @@ import * as cloudSync from './cloud-sync.js';
     state.thumbsRendered = false;
     state.forestBookKey = forestState.bookKeyFor(name, state.numPages);
     forestState.recordSessionStart(state.forestBookKey, name, 'text', state.numPages);
+    rememberLastOpened(name, 'text');
     clearPageCache();
     docTitle.textContent = name;
     openReader();
@@ -276,17 +273,21 @@ import * as cloudSync from './cloud-sync.js';
   }
 
   // ---------- Reader open/close ----------
+  // The app nav hides while actually reading — the workspace is meant to be
+  // distraction-free, and it's still one click away via the back button.
+  const appNavEl = document.getElementById('appNav');
   function openReader() {
     dropzone.classList.add('hidden');
     readerEl.classList.remove('hidden');
+    if (appNavEl) appNavEl.classList.add('hidden');
     updateZoomLabel();
-    if (forestScene) forestScene.stop(); // landing teaser is hidden now
   }
   function closeReader() {
     forestState.recordSessionEnd();
     dragAbort.abort();
     readerEl.classList.add('hidden');
     dropzone.classList.remove('hidden');
+    if (appNavEl) appNavEl.classList.remove('hidden');
     book.innerHTML = '';
     thumbList.innerHTML = '';
     state.pdfDoc = null;
@@ -294,11 +295,6 @@ import * as cloudSync from './cloud-sync.js';
     state.forestBookKey = null;
     clearPageCache();
     fileInput.value = '';
-    forestHomeSlot = forestTeaserCanvasSlot;
-    if (forestScene) {
-      moveForestCanvasTo(forestTeaserCanvasSlot);
-      forestScene.start();
-    }
   }
 
   // ---------- Page content (cached) ----------
@@ -973,13 +969,16 @@ import * as cloudSync from './cloud-sync.js';
   updateSoundCardStates();
 
   // ---------- Mind Forest ----------
+  // Only ever shown from inside the reader now (a quick panel, or the
+  // bigger explore overlay) — the full standalone experience lives on
+  // forest.html. Created lazily on first use rather than eagerly on page
+  // load, since there's no landing teaser here to warm it up for anymore.
   let forestScene = null;
-  let forestHomeSlot = forestTeaserCanvasSlot; // where the scene returns to once the explore modal closes
 
   function ensureForestScene() {
     if (forestScene) return forestScene;
     forestScene = new MindForestScene();
-    forestTeaserCanvasSlot.appendChild(forestScene.el);
+    forestPanelCanvasSlot.appendChild(forestScene.el);
     forestScene.setUnlockedItems(forestState.getUnlockedItems());
     resizeForestScene();
     return forestScene;
@@ -1002,9 +1001,7 @@ import * as cloudSync from './cloud-sync.js';
     const progress = forestState.getProgress();
 
     streakCount.textContent = String(stats.streak);
-    streakCountLanding.textContent = String(stats.streak);
     document.querySelectorAll('.streak-badge').forEach((b) => b.classList.toggle('lit', stats.streak > 0));
-    streakLabelLanding.textContent = stats.streak > 0 ? 'day streak' : 'start a streak today';
 
     forestGpLabel.textContent = `${stats.gp} gp`;
     statStreak.textContent = String(stats.streak);
@@ -1013,11 +1010,8 @@ import * as cloudSync from './cloud-sync.js';
     statUnlocked.textContent = String(stats.unlockedCount);
 
     const nextLabel = `${progress.nextLabel} in ${progress.remaining} gp`;
-    forestNextLabelLanding.textContent = nextLabel;
     forestPanelNextLabel.textContent = nextLabel;
-    const pct = `${Math.round(progress.pct * 100)}%`;
-    forestNextFillLanding.style.width = pct;
-    forestPanelNextFill.style.width = pct;
+    forestPanelNextFill.style.width = `${Math.round(progress.pct * 100)}%`;
 
     if (forestScene) forestScene.setUnlockedItems(forestState.getUnlockedItems());
   }
@@ -1027,17 +1021,14 @@ import * as cloudSync from './cloud-sync.js';
     ensureForestScene();
     forestPanel.classList.remove('hidden');
     forestToggle.setAttribute('aria-expanded', 'true');
-    forestHomeSlot = forestPanelCanvasSlot;
     moveForestCanvasTo(forestPanelCanvasSlot);
-    if (forestScene) forestScene.start();
+    forestScene.start();
     updateForestUI();
   }
   function closeForestPanel() {
     forestPanel.classList.add('hidden');
     forestToggle.setAttribute('aria-expanded', 'false');
-    forestHomeSlot = forestTeaserCanvasSlot;
-    if (!isForestExploreOpen()) moveForestCanvasTo(forestTeaserCanvasSlot);
-    if (forestScene && !readerEl.classList.contains('hidden') && !isForestExploreOpen()) forestScene.stop();
+    if (forestScene && !isForestExploreOpen()) forestScene.stop();
   }
 
   forestToggle.addEventListener('click', (e) => {
@@ -1049,8 +1040,8 @@ import * as cloudSync from './cloud-sync.js';
 
   // ---------- Mind Forest: explore modal ----------
   // a bigger, dedicated space to pan around, tap trees for their story, and
-  // drag things to a new spot — the small panel/teaser previews aren't a
-  // comfortable place to do that precisely
+  // drag things to a new spot — the small panel preview isn't a comfortable
+  // place to do that precisely
   function isForestExploreOpen() { return !forestExploreOverlay.classList.contains('hidden'); }
   function openForestExplore() {
     ensureForestScene();
@@ -1061,15 +1052,13 @@ import * as cloudSync from './cloud-sync.js';
   }
   function closeForestExplore() {
     forestExploreOverlay.classList.add('hidden');
-    moveForestCanvasTo(forestHomeSlot);
-    const readerOpen = !readerEl.classList.contains('hidden');
-    const homeVisible = forestHomeSlot === forestTeaserCanvasSlot ? !readerOpen : isForestPanelOpen();
-    if (forestScene && !homeVisible) forestScene.stop();
+    if (isForestPanelOpen()) {
+      moveForestCanvasTo(forestPanelCanvasSlot);
+    } else if (forestScene) {
+      forestScene.stop();
+    }
   }
   forestExploreBtn.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
-  forestExploreBtnLanding.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
-  const showcaseExploreBtn = document.getElementById('showcaseExploreBtn');
-  if (showcaseExploreBtn) showcaseExploreBtn.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
   forestExploreClose.addEventListener('click', () => closeForestExplore());
   forestExploreOverlay.addEventListener('click', (e) => { if (e.target === forestExploreOverlay) closeForestExplore(); });
   // the explore modal can be open from the landing page too, where the
@@ -1090,11 +1079,7 @@ import * as cloudSync from './cloud-sync.js';
     }
   });
 
-  // the landing teaser is the forest's permanent home whenever the reader is closed
-  ensureForestScene();
   updateForestUI();
-  if (forestScene) forestScene.start();
-
   window.addEventListener('resize', () => resizeForestScene());
 
   // ---------- Pomodoro ----------
@@ -1190,14 +1175,15 @@ import * as cloudSync from './cloud-sync.js';
     const items = await scanLibrary();
     if (items === null) {
       librarySection.classList.add('hidden');
-      return;
+      return null;
     }
     librarySection.classList.remove('hidden');
     if (!items.length) {
       libraryEmpty.classList.remove('hidden');
-      return;
+      return items;
     }
     items.forEach((item, i) => renderLibraryCard(item, i));
+    return items;
   }
 
   function renderLibraryCard(item, index) {
@@ -1265,7 +1251,7 @@ import * as cloudSync from './cloud-sync.js';
   async function openLibraryItem(item, card) {
     if (libraryBusy || flipBusy) return;
     libraryBusy = true;
-    card.classList.add('opening');
+    if (card) card.classList.add('opening');
     clearError();
     showLoading(`opening ${item.title}…`);
     try {
@@ -1284,12 +1270,32 @@ import * as cloudSync from './cloud-sync.js';
       showError(`could not open "${item.title}": ` + (err && err.message ? err.message : err));
     } finally {
       libraryBusy = false;
-      card.classList.remove('opening');
+      if (card) card.classList.remove('opening');
     }
   }
 
+  // "Read" (nav) and "continue reading" / "what to read next" (dashboard)
+  // all land here via a #resume hash — either a specific file
+  // (#resume=<name>, when the dashboard already knows what to open) or a
+  // bare #resume (fall back to whatever was opened most recently on this
+  // device). Silently does nothing if that file isn't in the current
+  // library/ listing — the grid below is always there as a fallback.
+  function resumeFromHash(items) {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#resume') || !items || !items.length) return;
+    const eq = hash.indexOf('=');
+    let targetName = eq >= 0 ? decodeURIComponent(hash.slice(eq + 1)) : null;
+    if (!targetName) {
+      try { targetName = JSON.parse(localStorage.getItem('zine.lastOpened') || 'null').name; }
+      catch (e) { targetName = null; }
+    }
+    if (!targetName) return;
+    const match = items.find((it) => it.name === targetName);
+    if (match) openLibraryItem(match, null);
+  }
+
   libraryRefresh.addEventListener('click', () => initLibrary());
-  initLibrary();
+  initLibrary().then(resumeFromHash);
 
   // ---------- Controls ----------
   fileBtn.addEventListener('click', () => fileInput.click());
@@ -1395,75 +1401,15 @@ import * as cloudSync from './cloud-sync.js';
   });
 
   // ---------- Account ----------
-  function isAccountPanelOpen() { return !accountPanel.classList.contains('hidden'); }
-  function openAccountPanel() {
-    accountPanel.classList.remove('hidden');
-    accountToggle.setAttribute('aria-expanded', 'true');
-  }
-  function closeAccountPanel() {
-    accountPanel.classList.add('hidden');
-    accountToggle.setAttribute('aria-expanded', 'false');
-  }
-  accountToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (isAccountPanelOpen()) closeAccountPanel(); else openAccountPanel();
-  });
-  accountPanel.addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('click', () => { if (isAccountPanelOpen()) closeAccountPanel(); });
-
-  const navSignInBtn = document.getElementById('navSignInBtn');
-  const ctaSignInBtn = document.getElementById('ctaSignInBtn');
-  const sectionCta = document.getElementById('sectionCta');
-
-  function updateAccountUI(session) {
-    const user = session ? session.user : null;
-    const signedIn = !!user;
-    accountSignedOutPanel.classList.toggle('hidden', signedIn);
-    accountSignedInPanel.classList.toggle('hidden', !signedIn);
-    googleSignInBtnLanding.classList.toggle('hidden', signedIn);
-    accountSignedInLanding.classList.toggle('hidden', !signedIn);
-    accountToggle.classList.toggle('active', signedIn);
-    if (navSignInBtn) navSignInBtn.classList.toggle('hidden', signedIn);
-    if (sectionCta) sectionCta.classList.toggle('hidden', signedIn);
-
-    if (signedIn) {
-      const meta = user.user_metadata || {};
-      const name = meta.full_name || meta.name || user.email || 'reader';
-      const avatarUrl = meta.avatar_url || '';
-      accountName.textContent = name;
-      accountEmail.textContent = user.email || '';
-      accountNameLanding.textContent = name;
-      [accountAvatar, accountAvatarLanding].forEach((img) => {
-        if (avatarUrl) { img.src = avatarUrl; img.style.visibility = 'visible'; }
-        else { img.removeAttribute('src'); img.style.visibility = 'hidden'; }
-      });
-    }
-  }
-
-  function handleSignIn() {
-    auth.signInWithGoogle().catch((err) => {
-      showError('sign-in failed: ' + (err && err.message ? err.message : err));
-    });
-  }
-  googleSignInBtn.addEventListener('click', handleSignIn);
-  googleSignInBtnLanding.addEventListener('click', handleSignIn);
-  if (navSignInBtn) navSignInBtn.addEventListener('click', handleSignIn);
-  if (ctaSignInBtn) ctaSignInBtn.addEventListener('click', handleSignIn);
-
-  function handleSignOut() {
-    closeAccountPanel();
-    auth.signOut();
-  }
-  signOutBtn.addEventListener('click', handleSignOut);
-  signOutBtnLanding.addEventListener('click', handleSignOut);
-
-  // Reconcile once per transition into signed-in (covers both a fresh
-  // Google sign-in and rehydrating a persisted session on page load) — never
-  // on every auth-state ping, which would otherwise re-run the cloud fetch
-  // on unrelated token refreshes.
+  // The account widget itself (avatar, name, sign-out) lives in the shared
+  // app-nav now — this page is always signed-in (requireAuth() guards it),
+  // so all that's left to do here is the cross-device catch-up. Reconciles
+  // once per transition into signed-in (covers both a fresh Google sign-in
+  // and rehydrating a persisted session on page load) — never on every
+  // auth-state ping, which would otherwise re-run the cloud fetch on
+  // unrelated token refreshes.
   let wasSignedIn = false;
   auth.onAuthChange((session) => {
-    updateAccountUI(session);
     const signedIn = !!session;
     if (signedIn && !wasSignedIn) {
       cloudSync.fetchCloudTotals().then((totals) => {

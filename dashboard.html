@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="profile.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="app-body">
+
+  <div id="appNav" class="app-nav"></div>
+
+  <main class="app-page dashboard-page">
+    <section class="dash-hero">
+      <img id="dashAvatar" class="profile-hero-avatar" alt="">
+      <div class="dash-hero-text">
+        <h1 id="dashGreeting">welcome back</h1>
+        <p id="dashSub">let's see how your forest is doing</p>
+      </div>
+      <span class="streak-badge dash-streak-badge"><span class="streak-flame">🔥</span><b id="dashStreak">0</b><span class="dash-streak-label">day streak</span></span>
+    </section>
+
+    <section class="stat-grid dash-stat-grid" id="dashStatGrid">
+      <div class="stat-tile"><span class="stat-tile-icon">📚</span><b id="dStatBooks">0</b><span>books read</span></div>
+      <div class="stat-tile"><span class="stat-tile-icon">📄</span><b id="dStatPages">0</b><span>pages read</span></div>
+      <div class="stat-tile"><span class="stat-tile-icon">🌲</span><b id="dStatForestLevel">0</b><span>forest level</span></div>
+      <div class="stat-tile"><span class="stat-tile-icon">✨</span><b id="dStatXp">0</b><span>xp earned</span></div>
+    </section>
+
+    <div class="dash-grid">
+      <section class="dash-card" id="continueCard">
+        <h2>continue reading</h2>
+        <div id="continueContent">
+          <p class="dash-empty-hint">you haven't opened anything yet.</p>
+          <a href="library.html" class="btn-primary dash-card-btn">open your library</a>
+        </div>
+      </section>
+
+      <section class="dash-card" id="forestTodayCard">
+        <h2>your forest, right now</h2>
+        <div id="dashForestSlot" class="forest-canvas-slot dash-forest-slot"></div>
+        <div class="dash-forest-footer">
+          <span id="dashForestNext">Sprouting…</span>
+          <a href="forest.html" class="section-link">explore your forest →</a>
+        </div>
+      </section>
+    </div>
+
+    <div class="dash-grid">
+      <section class="dash-card" id="nextReadCard">
+        <h2>what to read next</h2>
+        <div id="nextReadContent">
+          <p class="dash-empty-hint">rescan your library to see suggestions.</p>
+        </div>
+      </section>
+
+      <section class="dash-card" id="accomplishCard">
+        <h2>recent accomplishments</h2>
+        <div id="accomplishList" class="dash-accomplish-list">
+          <p class="dash-empty-hint">your growth timeline starts with your next reading session.</p>
+        </div>
+        <a href="profile.html" class="section-link">full timeline →</a>
+      </section>
+    </div>
+
+    <section class="dash-cta">
+      <h2>ready to focus?</h2>
+      <p>start a Pomodoro session on your next book — every completed session grows your forest.</p>
+      <a href="library.html" class="btn-primary dash-cta-btn">start a focus session</a>
+    </section>
+  </main>
+
+  <script src="vendor/supabase.umd.js"></script>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

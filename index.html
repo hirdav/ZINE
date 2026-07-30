@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="auth-checking">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZINE READER</title>
+<title>ZINE — a calmer way to read</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Drop / landing screen -->
+  <!-- Pure marketing. No file upload, no library, no reader — signed-in
+       visitors are redirected to dashboard.html before this ever renders. -->
   <div id="dropzone" class="dropzone">
 
     <nav class="landing-nav">
@@ -18,6 +19,7 @@
         <a href="#sectionFocus">focus</a>
         <a href="#sectionAmbience">ambience</a>
         <a href="#sectionWhy">why zine</a>
+        <a href="#sectionFaq">faq</a>
       </div>
       <button id="navSignInBtn" class="account-google-btn landing-nav-cta">
         <span class="account-google-icon">G</span> sign in
@@ -44,60 +46,31 @@
           </div>
           <p class="hero-eyebrow">a calmer way to read</p>
           <h1 class="hero-headline">Every page you turn<br><em>grows</em> something.</h1>
-          <p class="hero-sub">ZINE turns reading into a living forest — focused sessions, page streaks, and finished books all feed a small ecosystem that's yours alone. No build step, no upload, no account required to start.</p>
+          <p class="hero-sub">ZINE is a reading workspace built around focus: a page-by-page layout instead of infinite scroll, a Pomodoro timer designed for reading, calming ambient sound, and a Mind Forest that grows with every session — a visual record of your own reading journey.</p>
 
-          <div class="drop-target" id="dropTarget">
-            <p class="drop-label">drag &amp; drop a <b>.pdf</b>, <b>.txt</b> or <b>.md</b> file here</p>
-            <p class="drop-or">— or —</p>
-            <button id="fileBtn" class="btn-primary">choose a file</button>
-            <input type="file" id="fileInput" accept=".pdf,.txt,.md" hidden>
-          </div>
-
-          <p class="privacy-note">reading stays 100% local — nothing leaves your browser. signing in only syncs your Mind Forest, so it follows you to another device.</p>
-
-          <div class="account-row-landing">
-            <button id="googleSignInBtnLanding" class="account-google-btn">
-              <span class="account-google-icon">G</span> sign in with Google
-            </button>
-            <div id="accountSignedInLanding" class="account-signedin hidden">
-              <img id="accountAvatarLanding" class="account-avatar" alt="">
-              <span id="accountNameLanding" class="account-name"></span>
-              <a href="profile.html" class="account-profile-link">📊 profile</a>
-              <button id="signOutBtnLanding" class="account-signout-btn" title="Sign out">sign out</button>
-            </div>
-          </div>
+          <button id="heroSignInBtn" class="btn-primary hero-cta">
+            sign in with Google to start reading
+          </button>
+          <p class="privacy-note">your files never leave your browser — only your Mind Forest's progress syncs to your account, so it follows you to another device.</p>
         </div>
 
         <div class="hero-art reveal">
-          <div id="forestTeaser" class="forest-teaser hero-forest">
-            <div id="forestTeaserCanvasSlot" class="forest-canvas-slot"></div>
-            <div class="forest-teaser-info">
-              <div class="forest-teaser-row">
-                <span class="streak-badge"><span class="streak-flame">🔥</span><b id="streakCountLanding">0</b></span>
-                <span class="forest-teaser-label" id="streakLabelLanding">start a streak today</span>
-              </div>
-              <div class="forest-next-row">
-                <span id="forestNextLabelLanding">Sprouting…</span>
-                <div class="forest-progress-track"><div id="forestNextFillLanding" class="forest-progress-fill"></div></div>
-              </div>
-              <button id="forestExploreBtnLanding" class="forest-explore-btn">⤢ explore your forest</button>
+          <div class="hero-forest-demo">
+            <div class="hero-forest-sky"></div>
+            <div class="hero-forest-hills"></div>
+            <div class="hero-forest-ground">
+              <span class="hero-forest-plant hero-forest-plant-1">🌲</span>
+              <span class="hero-forest-plant hero-forest-plant-2">🌳</span>
+              <span class="hero-forest-plant hero-forest-plant-3">🌿</span>
+              <span class="hero-forest-plant hero-forest-plant-4">🍄</span>
             </div>
           </div>
-          <p class="hero-art-caption">this is a real, live preview — your forest, growing as you read</p>
+          <p class="hero-art-caption">a preview — your own forest starts as a single sprout</p>
         </div>
       </div>
 
-      <a href="#librarySection" class="hero-scroll-cue" aria-label="Scroll to learn more">↓</a>
+      <a href="#sectionForest" class="hero-scroll-cue" aria-label="Scroll to learn more">↓</a>
     </section>
-
-    <div id="librarySection" class="library-section hidden">
-      <div class="library-header">
-        <span class="library-title">your library</span>
-        <button id="libraryRefresh" class="library-refresh" title="Rescan the library/ folder">⟳ rescan</button>
-      </div>
-      <div id="libraryGrid" class="library-grid"></div>
-      <p id="libraryEmpty" class="library-empty hidden">no books yet — drop a <b>.pdf</b>, <b>.txt</b>, or <b>.md</b> into the <code>library/</code> folder and rescan.</p>
-    </div>
 
     <!-- ---------- Grow your Mind Forest ---------- -->
     <section class="landing-section" id="sectionForest">
@@ -192,13 +165,29 @@
       </div>
     </section>
 
-    <!-- ---------- Explore the experience ---------- -->
+    <!-- ---------- Product story / screenshots ---------- -->
     <section class="landing-section" id="sectionShowcase">
-      <div class="showcase-inner reveal">
-        <p class="section-eyebrow">05 — see it for yourself</p>
-        <h2 class="section-heading">This isn't a screenshot</h2>
-        <p class="section-lede">The forest above is live — it's rendering from your own reading history right now, not a mockup. Open it full-screen to pan, tap a tree for its story, or drag one to a new spot.</p>
-        <button class="btn-primary showcase-btn" id="showcaseExploreBtn">⤢ open your forest</button>
+      <div class="landing-section-header reveal">
+        <p class="section-eyebrow">05 — the workspace</p>
+        <h2 class="section-heading">One focused screen, nothing else</h2>
+        <p class="section-lede">Sign in and your Library is the only thing between you and a book — pick one up, and the reader takes over full-screen: page-turns, a Pomodoro ring, ambient sound, and your Mind Forest are one tap away, and everything else disappears.</p>
+      </div>
+      <div class="mock-grid reveal">
+        <div class="mock-card">
+          <div class="mock-card-icon">📚</div>
+          <div class="mock-card-title">Library</div>
+          <p>Every book you've opened, with progress and last-read date at a glance.</p>
+        </div>
+        <div class="mock-card">
+          <div class="mock-card-icon">📖</div>
+          <div class="mock-card-title">Reader</div>
+          <p>Drag-to-flip or hover-to-flip pages, spread or single-page, at native display sharpness.</p>
+        </div>
+        <div class="mock-card">
+          <div class="mock-card-icon">🌲</div>
+          <div class="mock-card-title">Mind Forest</div>
+          <p>Pan, zoom, and tap any tree for the story of the session that grew it.</p>
+        </div>
       </div>
     </section>
 
@@ -225,10 +214,52 @@
       </div>
     </section>
 
+    <!-- ---------- FAQ ---------- -->
+    <section class="landing-section" id="sectionFaq">
+      <div class="landing-section-header reveal">
+        <p class="section-eyebrow">07 — faq</p>
+        <h2 class="section-heading">Questions, answered</h2>
+      </div>
+      <div class="faq-list reveal">
+        <details class="faq-item">
+          <summary>What is Zine?</summary>
+          <p>A reading workspace for PDFs and text/markdown files, built around one idea: reading is better as a calm, focused, page-by-page experience than a wall of infinite scroll — and better still when your progress visibly adds up to something, your Mind Forest.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Why is it different from a normal PDF reader?</summary>
+          <p>Most PDF readers are just viewers. Zine pairs the reading surface with a built-in Pomodoro timer, ambient sound, and a progression system that turns consistent reading into a visible, growing forest — the reading experience is the whole product, not an afterthought.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Why does Zine improve focus and comprehension?</summary>
+          <p>Two-page, edge-bounded layouts give your mind natural stopping points and spatial memory cues that an endless scroll never repeats — see "why zine reading works" above. Layer in a distraction-free workspace, a focus timer, and non-verbal ambient sound, and there's simply less pulling your attention off the page.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How does the Mind Forest work?</summary>
+          <p>Reading pages, keeping a daily streak, crossing book milestones, and finishing Pomodoro focus sessions all earn Growth Points. Growth Points unlock an ever-growing catalog of trees, plants, and wildlife — every unlock is tied to the specific book and session that earned it, so your forest is a real record, not a random decoration.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How does the Pomodoro system help?</summary>
+          <p>A focus/break cycle built into the reader itself — start it before you read, and a completed focus session feeds straight into your Mind Forest. It's there to reward sustained attention, not speed-reading.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What makes the reading experience calming and immersive?</summary>
+          <p>A quiet, distraction-free workspace; procedurally generated ambient sound (rain, forest, café, ocean, library, fireplace, wind, night) with no music or speech to compete for attention; and a page-turn interaction that feels like a real book rather than a scrollbar.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Why should I sign in?</summary>
+          <p>Signing in with Google is what lets Zine keep your Mind Forest, reading history, and streaks — and carry them to any device you read from next. Your documents themselves are never uploaded; only your reading progress syncs.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Is my data private?</summary>
+          <p>Your files stay in your browser — they're never uploaded anywhere. Signing in only syncs metadata about your reading activity (session lengths, pages read, growth events) to your account, protected behind your own Google sign-in.</p>
+        </details>
+      </div>
+    </section>
+
     <!-- ---------- Sign-in CTA band ---------- -->
     <section class="landing-cta reveal" id="sectionCta">
       <h2>Ready to grow your forest?</h2>
-      <p>Sign in to carry your Mind Forest to any device — or just drop a file above, no account needed.</p>
+      <p>Sign in with Google to open your Library and start your first session.</p>
       <button id="ctaSignInBtn" class="account-google-btn landing-cta-btn">
         <span class="account-google-icon">G</span> sign in with Google
       </button>
@@ -238,7 +269,7 @@
       <div class="landing-footer-inner">
         <div class="landing-footer-brand">
           <span class="landing-footer-logo">ZINE</span>
-          <p>a browser-native reader for pdf &amp; text zines</p>
+          <p>a reading workspace for pdf &amp; text zines</p>
         </div>
         <div class="landing-footer-links">
           <a href="https://github.com/hirdav/zine" target="_blank" rel="noopener">GitHub</a>
@@ -250,156 +281,7 @@
     </footer>
   </div>
 
-  <!-- Reader UI -->
-  <div id="reader" class="reader hidden">
-
-    <!-- Top bar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <button id="backBtn" class="icon-btn" title="Close (Esc)">⟵</button>
-        <span id="docTitle" class="doc-title">untitled</span>
-        <span id="streakBadgeTopbar" class="streak-badge" title="Daily reading streak"><span class="streak-flame">🔥</span><b id="streakCount">0</b></span>
-      </div>
-      <div class="topbar-center">
-        <button id="prevBtn" class="icon-btn" title="Previous (←)">‹</button>
-        <span id="pageIndicator" class="page-indicator">1 / 1</span>
-        <button id="nextBtn" class="icon-btn" title="Next (→)">›</button>
-      </div>
-      <div class="topbar-right">
-        <button id="spreadToggle" class="icon-btn" title="Toggle single/spread view">⧉</button>
-        <button id="zoomOutBtn" class="icon-btn" title="Zoom out">−</button>
-        <span id="zoomLevel" class="zoom-level">100%</span>
-        <button id="zoomInBtn" class="icon-btn" title="Zoom in">+</button>
-        <button id="thumbsToggle" class="icon-btn" title="Toggle thumbnails (T)">▤</button>
-        <div class="pomodoro-anchor">
-          <button id="pomodoroToggle" class="icon-btn" title="Focus timer (P)">⏱</button>
-          <div id="pomodoroPanel" class="pomodoro-panel hidden">
-            <div class="pomodoro-header">
-              <span id="pomodoroModeLabel" class="pomodoro-mode-label">focus</span>
-              <span id="pomodoroCycleLabel" class="pomodoro-cycle-label"></span>
-            </div>
-            <div class="pomodoro-ring-wrap">
-              <svg class="pomodoro-ring" viewBox="0 0 100 100">
-                <circle class="pomodoro-ring-track" cx="50" cy="50" r="44"></circle>
-                <circle id="pomodoroRingFill" class="pomodoro-ring-fill" cx="50" cy="50" r="44"></circle>
-              </svg>
-              <span id="pomodoroTime" class="pomodoro-time">25:00</span>
-            </div>
-            <div class="pomodoro-controls">
-              <button id="pomodoroStartPause" class="btn-primary pomodoro-btn">start</button>
-              <button id="pomodoroReset" class="pomodoro-side-btn" title="Reset">↺</button>
-              <button id="pomodoroSkip" class="pomodoro-side-btn" title="Skip to next phase">⏭</button>
-            </div>
-            <p class="pomodoro-hint">focus sessions grow your Mind Forest</p>
-          </div>
-        </div>
-        <div class="forest-anchor">
-          <button id="forestToggle" class="icon-btn" title="Mind Forest (G)">🌲</button>
-          <div id="forestPanel" class="forest-panel hidden">
-            <div class="forest-panel-header">
-              <span>mind forest</span>
-              <span id="forestGpLabel" class="forest-gp-label">0 gp</span>
-            </div>
-            <div id="forestPanelCanvasSlot" class="forest-canvas-slot forest-canvas-slot-panel"></div>
-            <button id="forestExploreBtn" class="forest-explore-btn">⤢ explore your forest</button>
-            <div class="forest-next-row">
-              <span id="forestPanelNextLabel">Sprouting…</span>
-              <div class="forest-progress-track"><div id="forestPanelNextFill" class="forest-progress-fill"></div></div>
-            </div>
-            <div class="forest-stats-grid">
-              <div class="forest-stat"><b id="statStreak">0</b><span>day streak</span></div>
-              <div class="forest-stat"><b id="statSessions">0</b><span>sessions</span></div>
-              <div class="forest-stat"><b id="statFocusMin">0</b><span>focus min</span></div>
-              <div class="forest-stat"><b id="statUnlocked">0</b><span>unlocked</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="sound-anchor">
-          <button id="soundToggle" class="icon-btn" title="Ambient sound (S)">♪</button>
-          <div id="soundPanel" class="sound-panel hidden">
-            <div class="sound-panel-header">
-              <span>ambient sound</span>
-              <button id="soundOffBtn" class="sound-off-btn">off</button>
-            </div>
-            <p class="sound-panel-hint">a quiet backdrop to read against — pick one, or none</p>
-            <div class="sound-section-label">noise</div>
-            <div class="sound-grid" id="soundGridNoise"></div>
-            <div class="sound-section-label">ambience</div>
-            <div class="sound-grid" id="soundGridAmbience"></div>
-            <div class="sound-volume-row">
-              <span class="sound-vol-icon">🔈</span>
-              <input type="range" id="soundVolume" min="0" max="100" value="45" title="Volume">
-              <span class="sound-vol-icon">🔊</span>
-            </div>
-          </div>
-        </div>
-        <button id="fullscreenBtn" class="icon-btn" title="Fullscreen (F)">⛶</button>
-        <div class="account-anchor">
-          <button id="accountToggle" class="icon-btn" title="Account">👤</button>
-          <div id="accountPanel" class="account-panel hidden">
-            <div id="accountSignedOutPanel">
-              <p class="account-hint">sign in to sync your Mind Forest across devices</p>
-              <button id="googleSignInBtn" class="account-google-btn">
-                <span class="account-google-icon">G</span> sign in with Google
-              </button>
-            </div>
-            <div id="accountSignedInPanel" class="hidden">
-              <div class="account-profile">
-                <img id="accountAvatar" class="account-avatar" alt="">
-                <div class="account-profile-text">
-                  <div id="accountName" class="account-name"></div>
-                  <div id="accountEmail" class="account-email"></div>
-                </div>
-              </div>
-              <a href="profile.html" class="account-profile-link">📊 view profile</a>
-              <button id="signOutBtn" class="account-signout-btn">sign out</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <div class="reader-body">
-      <!-- Thumbnail rail -->
-      <aside id="thumbRail" class="thumb-rail hidden">
-        <div id="thumbList" class="thumb-list"></div>
-      </aside>
-
-      <!-- Stage -->
-      <main id="stage" class="stage">
-        <button id="edgePrev" class="edge-nav edge-prev" title="Previous page">‹</button>
-        <div id="book" class="book"></div>
-        <button id="edgeNext" class="edge-nav edge-next" title="Next page">›</button>
-      </main>
-    </div>
-
-    <!-- Progress bar -->
-    <div class="progress-track">
-      <div id="progressFill" class="progress-fill"></div>
-    </div>
-  </div>
-
-  <div id="loadingOverlay" class="loading-overlay hidden">
-    <div class="loader"></div>
-    <p id="loadingText">loading…</p>
-  </div>
-
-  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
-  <div id="onboardingOverlay" class="onboarding-overlay hidden"></div>
-
-  <div id="forestExploreOverlay" class="forest-explore-overlay hidden">
-    <div class="forest-explore-modal">
-      <div class="forest-explore-header">
-        <span>your mind forest</span>
-        <button id="forestExploreClose" class="icon-btn" title="Close">✕</button>
-      </div>
-      <div id="forestExploreCanvasSlot" class="forest-canvas-slot forest-canvas-slot-explore"></div>
-      <p class="forest-explore-hint">drag the background to pan · tap a tree for its story · drag a tree or creature to replant it</p>
-    </div>
-  </div>
-
   <script src="vendor/supabase.umd.js"></script>
-  <script type="module" src="app.js"></script>
   <script type="module" src="landing.js"></script>
 </body>
 </html>
