@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE — Settings</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="profile.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body class="app-body">
+
+  <div id="appNav" class="app-nav"></div>
+
+  <main class="app-page settings-page">
+    <div class="profile-section-header"><h2>settings</h2></div>
+
+    <section class="settings-card">
+      <h3>ambient sound</h3>
+      <p class="analytics-card-hint">the default volume new reading sessions start at.</p>
+      <div class="settings-row">
+        <span class="sound-vol-icon">🔈</span>
+        <input type="range" id="settingsVolume" min="0" max="100" value="45" title="Default volume">
+        <span class="sound-vol-icon">🔊</span>
+        <span id="settingsVolumeLabel" class="settings-value">45%</span>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <h3>onboarding</h3>
+      <p class="analytics-card-hint">replay the first-run Mind Forest introduction next time you open your library.</p>
+      <button id="replayOnboardingBtn" class="library-refresh">↺ replay intro</button>
+    </section>
+
+    <section class="settings-card">
+      <h3>account</h3>
+      <p class="analytics-card-hint">signed in as <span id="settingsEmail"></span>.</p>
+      <button id="settingsSignOutBtn" class="account-signout-btn settings-signout-btn">sign out</button>
+    </section>
+
+    <section class="settings-card settings-card-muted">
+      <h3>coming soon</h3>
+      <p class="analytics-card-hint">theme selection, flip sensitivity, and layering more than one ambient sound at once — see <a href="https://github.com/hirdav/zine#ideas-for-contributors" target="_blank" rel="noopener">contributor ideas</a> if you'd like to help build these.</p>
+    </section>
+  </main>
+
+  <script src="vendor/supabase.umd.js"></script>
+  <script type="module" src="settings.js"></script>
+</body>
+</html>

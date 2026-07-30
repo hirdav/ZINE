@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE — Mind Forest</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="profile.css">
+</head>
+<body class="app-body">
+
+  <div id="appNav" class="app-nav"></div>
+
+  <main class="app-page profile-main">
+    <div class="profile-section-header">
+      <h2>your mind forest</h2>
+      <div class="forest-filter-row">
+        <select id="forestFilterDoc" class="profile-select">
+          <option value="">all documents</option>
+        </select>
+        <select id="forestFilterRange" class="profile-select">
+          <option value="all">all time</option>
+          <option value="7">last 7 days</option>
+          <option value="30">last 30 days</option>
+          <option value="90">last 90 days</option>
+        </select>
+      </div>
+    </div>
+    <div class="profile-forest-layout forest-page-layout">
+      <div id="profileForestCanvasSlot" class="forest-canvas-slot profile-forest-slot forest-page-slot"></div>
+      <div class="forest-filter-results">
+        <p class="forest-filter-hint">matching growth events for the filter above — tap a tree in the scene itself for its full story, drag it to a new spot, or pan/zoom to explore</p>
+        <div id="forestFilterList" class="forest-filter-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/supabase.umd.js"></script>
+  <script type="module" src="forest.js"></script>
+</body>
+</html>

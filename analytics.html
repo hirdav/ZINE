@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZINE — Analytics</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="profile.css">
+</head>
+<body class="app-body">
+
+  <div id="appNav" class="app-nav"></div>
+
+  <main class="app-page profile-main">
+    <div class="profile-section-header"><h2>reading analytics</h2></div>
+
+    <div class="analytics-grid">
+      <div class="analytics-card">
+        <h3>reading calendar <span class="analytics-card-hint">last 12 weeks</span></h3>
+        <div id="heatmapGrid" class="heatmap-grid"></div>
+      </div>
+
+      <div class="analytics-card">
+        <h3>consistency</h3>
+        <div class="analytics-metric-row">
+          <div class="analytics-metric"><b id="mConsistency">0%</b><span>active days, last 30</span></div>
+          <div class="analytics-metric"><b id="mAvgSession">0m</b><span>avg session length</span></div>
+          <div class="analytics-metric"><b id="mFocusScore">0%</b><span>focus score</span></div>
+        </div>
+        <p class="analytics-card-hint">focus score = share of reading time spent in completed Pomodoro sessions</p>
+      </div>
+
+      <div class="analytics-card">
+        <h3>streak history</h3>
+        <div id="streakHistoryList" class="streak-history-list"></div>
+      </div>
+
+      <div class="analytics-card">
+        <h3>recent sessions</h3>
+        <div id="recentSessionsList" class="recent-sessions-list"></div>
+      </div>
+
+      <div class="analytics-card" id="timePerDocCard">
+        <h3>time per document</h3>
+        <div id="timePerDocList" class="time-per-doc-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/supabase.umd.js"></script>
+  <script type="module" src="analytics.js"></script>
+</body>
+</html>

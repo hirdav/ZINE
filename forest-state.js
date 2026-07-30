@@ -278,6 +278,11 @@ export function markOnboardingSeen() {
 export function hasSeenOnboarding() {
   return !!state.onboardingSeen;
 }
+// Settings page "replay intro" control — the inverse of markOnboardingSeen().
+export function resetOnboarding() {
+  state.onboardingSeen = false;
+  save();
+}
 
 // ---------- public: reading state ----------
 
