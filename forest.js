@@ -8,12 +8,29 @@ import { requireAuth, mountAppNav } from './app-nav.js';
 import { loadProfileData } from './profile-data.js';
 import * as forestState from './forest-state.js';
 import { MindForestScene } from './forest-scene.js';
+import { isForestAmbienceMuted, startForestAmbience, stopForestAmbience, toggleForestAmbience } from './forest-ambience.js';
 
 (async () => {
   'use strict';
 
   if (!(await requireAuth())) return;
   mountAppNav(document.getElementById('appNav'), 'forest');
+
+  // ---------- forest ambience (wind, leaves, distant wildlife) ----------
+  const ambienceBtn = document.getElementById('forestAmbienceToggle');
+  function renderAmbienceBtn() {
+    const muted = isForestAmbienceMuted();
+    ambienceBtn.textContent = muted ? '🔇' : '🔊';
+    ambienceBtn.title = muted ? 'Unmute forest sounds' : 'Mute forest sounds';
+    ambienceBtn.classList.toggle('active', !muted);
+  }
+  renderAmbienceBtn();
+  startForestAmbience();
+  ambienceBtn.addEventListener('click', () => {
+    toggleForestAmbience();
+    renderAmbienceBtn();
+  });
+  window.addEventListener('beforeunload', stopForestAmbience);
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

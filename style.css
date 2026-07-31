@@ -1666,8 +1666,12 @@ body.app-body { overflow-y: auto; height: auto; min-height: 100%; }
   text-transform: uppercase;
   color: var(--paper);
 }
+.forest-explore-header-actions { display: flex; align-items: center; gap: 8px; }
 .forest-canvas-slot-explore { height: min(62vh, 540px); }
 .forest-explore-hint { font-size: 10.5px; color: var(--muted); text-align: center; margin: 0; }
+
+/* ---------- Forest ambience mute toggle (forest.html + explore overlay) ---------- */
+.forest-ambience-toggle.active { border-color: var(--accent-2); color: var(--accent-2); }
 
 /* ---------- Pomodoro ---------- */
 .pomodoro-anchor { position: relative; }

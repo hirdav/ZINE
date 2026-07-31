@@ -1,6 +1,8 @@
-// Procedurally-generated ambient sound library — no audio files, no downloads,
-// no licensing to track. Every sound is synthesized on the fly with the Web
-// Audio API from a short buffer of colored noise, looped seamlessly.
+// Ambient sound library. Most of the "ambience" group is now real recorded
+// loops (see sounds/README.md — sourced from Pixabay) rather than synthesis;
+// the noise group and the one ambience preset with no matching recording
+// (library) stay procedurally generated from colored noise, no audio file,
+// no download.
 //
 // Choice of sounds follows the research on background sound and reading
 // (see /Downloads/sound.md brought into this project): plain noise (white/
@@ -8,11 +10,10 @@
 // some ADHD/dyslexic readers; low-semantic ambient sound supports attention
 // without the comprehension cost that speech or lyrics carry. Deliberately
 // no music and no vocal/speech tracks — the evidence is that those hurt
-// reading comprehension. The environment presets (forest, café, library,
-// fireplace, night) are the same colored-noise base as rain/ocean/wind, with
-// a handful of scattered one-off transients layered in (birdsong, porcelain
-// clink, page rustle, wood crackle, cricket chirps) so each reads as a place
-// rather than just a texture, while staying just as free of language/melody.
+// reading comprehension. The one remaining procedural environment preset
+// (library) is the same colored-noise base as the noise group, with a
+// handful of scattered one-off transients layered in (a soft page-rustle)
+// so it still reads as a place rather than just a texture.
 
 export const SOUND_GROUPS = [
   {
@@ -28,14 +29,14 @@ export const SOUND_GROUPS = [
     id: 'ambience',
     label: 'ambience',
     sounds: [
-      { id: 'rain', label: 'Rain', icon: '🌧', build: buildRain },
-      { id: 'ocean', label: 'Ocean', icon: '🌊', build: buildOcean },
-      { id: 'wind', label: 'Wind', icon: '🍃', build: buildWind },
-      { id: 'forest', label: 'Forest', icon: '🌲', build: buildForest },
-      { id: 'cafe', label: 'Café', icon: '☕', build: buildCafe },
+      { id: 'rain', label: 'Rain', icon: '🌧', file: 'sounds/river.mp3' },
+      { id: 'ocean', label: 'Ocean', icon: '🌊', file: 'sounds/ocean.mp3' },
+      { id: 'wind', label: 'Wind', icon: '🍃', file: 'sounds/wind.mp3' },
+      { id: 'forest', label: 'Forest', icon: '🌲', file: 'sounds/forest.mp3' },
+      { id: 'cafe', label: 'Café', icon: '☕', file: 'sounds/cafe.mp3' },
       { id: 'library', label: 'Library', icon: '📖', build: buildLibrary },
-      { id: 'fireplace', label: 'Fireplace', icon: '🔥', build: buildFireplace },
-      { id: 'night', label: 'Night', icon: '🌙', build: buildNight },
+      { id: 'fireplace', label: 'Fireplace', icon: '🔥', file: 'sounds/fireplace.mp3' },
+      { id: 'night', label: 'Night', icon: '🌙', file: 'sounds/night.mp3' },
     ],
   },
 ];
@@ -82,12 +83,6 @@ function brownFilter(white) {
   return out;
 }
 
-function brighten(pink, white, mix) {
-  const out = new Float32Array(pink.length);
-  for (let i = 0; i < pink.length; i++) out[i] = pink[i] * (1 - mix) + white[i] * mix;
-  return out;
-}
-
 function dullen(samples, alpha) {
   const out = new Float32Array(samples.length);
   let prev = 0;
@@ -113,23 +108,11 @@ function envelopeAt(t, components) {
   return v;
 }
 
-// ---------- one-off transient events (bird chirps, crackles, page rustle...) ----------
+// ---------- one-off transient events (page rustle) ----------
 // Scattered directly into the colored buffer before the loop-point crossfade,
 // so a slow amplitude envelope (if any) still sweeps them naturally. Kept out
 // of the final `fadeSeconds` window so a transient never gets split/dulled by
 // the crossfade blend at the loop seam.
-
-function addTone(out, sr, safeLen, tSec, durMs, freq, amp, sweep = 0) {
-  const start = Math.floor(tSec * sr);
-  const len = Math.floor((durMs / 1000) * sr);
-  if (start < 0 || start + len >= safeLen) return;
-  for (let i = 0; i < len; i++) {
-    const x = i / len;
-    const env = Math.sin(Math.PI * x); // 0 at both ends, smooth in/out
-    const f = freq + sweep * x;
-    out[start + i] += Math.sin(2 * Math.PI * f * (i / sr)) * amp * env;
-  }
-}
 
 function addNoiseBurst(out, sr, safeLen, tSec, durMs, amp, decayPow = 6) {
   const start = Math.floor(tSec * sr);
@@ -190,73 +173,6 @@ function buildWhite(ctx) { return buildBuffer(ctx, 6, (w) => w.slice()); }
 function buildPink(ctx) { return buildBuffer(ctx, 6, pinkFilter); }
 function buildBrown(ctx) { return buildBuffer(ctx, 6, brownFilter); }
 
-function buildRain(ctx) {
-  return buildBuffer(
-    ctx, 10,
-    (w) => brighten(pinkFilter(w), w, 0.18),
-    [[10 / 7, 0.16, 0], [10 / 11, 0.14, 1.3]],
-    0.72
-  );
-}
-
-function buildOcean(ctx) {
-  return buildBuffer(
-    ctx, 10,
-    brownFilter,
-    [[5, 0.42, -Math.PI / 2]],
-    0.55
-  );
-}
-
-function buildWind(ctx) {
-  return buildBuffer(
-    ctx, 10,
-    (w) => dullen(pinkFilter(w), 0.08),
-    [[10 / 3, 0.4, 0]],
-    0.55
-  );
-}
-
-function buildForest(ctx) {
-  return buildBuffer(
-    ctx, 16,
-    (w) => dullen(pinkFilter(w), 0.15),
-    [[16 / 5, 0.22, 0]],
-    0.4,
-    0.35,
-    (out, sr, safeLen) => {
-      // birdsong: short upward-swept chirps at irregular intervals, a couple
-      // of species (pitch families) so it doesn't read as one repeating loop
-      scatterEvents(sr, safeLen, 2.6, 0.8, (t) => {
-        const high = Math.random() > 0.5;
-        addTone(out, sr, safeLen, t, high ? 90 : 140, high ? 3200 : 2200, 0.05, high ? 900 : 500);
-        if (Math.random() > 0.6) addTone(out, sr, safeLen, t + 0.12, 70, (high ? 3400 : 2400) - 300, 0.035, high ? -600 : -300);
-      });
-      // occasional leaf-rustle burst, softer/broader than a bird chirp
-      scatterEvents(sr, safeLen, 5.5, 0.7, (t) => addNoiseBurst(out, sr, safeLen, t, 260, 0.05, 3));
-    }
-  );
-}
-
-function buildCafe(ctx) {
-  return buildBuffer(
-    ctx, 14,
-    (w) => dullen(brighten(pinkFilter(w), w, 0.08), 0.03),
-    [[14 / 5, 0.18, 0.6]],
-    0.6,
-    0.35,
-    (out, sr, safeLen) => {
-      // porcelain clink — a bright, fast-decaying tone pair
-      scatterEvents(sr, safeLen, 4.2, 0.75, (t) => {
-        addTone(out, sr, safeLen, t, 45, 2800 + Math.random() * 900, 0.045);
-        addTone(out, sr, safeLen, t + 0.03, 60, 1800 + Math.random() * 500, 0.03);
-      });
-      // low, soft chair/footstep thump — rare
-      scatterEvents(sr, safeLen, 9, 0.6, (t) => addNoiseBurst(out, sr, safeLen, t, 90, 0.06, 8));
-    }
-  );
-}
-
 function buildLibrary(ctx) {
   return buildBuffer(
     ctx, 18,
@@ -265,44 +181,8 @@ function buildLibrary(ctx) {
     0.22,
     0.4,
     (out, sr, safeLen) => {
-      // a page turn: a soft, fairly long noise swell — much gentler attack
-      // than the cafe clink or fireplace crackle, and rare
+      // a page turn: a soft, fairly long noise swell, gentle attack, and rare
       scatterEvents(sr, safeLen, 8, 0.6, (t) => addNoiseBurst(out, sr, safeLen, t, 220, 0.035, 2.2));
-    }
-  );
-}
-
-function buildFireplace(ctx) {
-  return buildBuffer(
-    ctx, 12,
-    (w) => dullen(brownFilter(w), 0.05),
-    [[12 / 4, 0.3, -1]],
-    0.5,
-    0.35,
-    (out, sr, safeLen) => {
-      // wood crackle/pop — short sharp noise bursts, frequent and irregular
-      scatterEvents(sr, safeLen, 0.55, 0.9, (t) => {
-        addNoiseBurst(out, sr, safeLen, t, 12 + Math.random() * 20, 0.09 + Math.random() * 0.08, 10);
-      });
-    }
-  );
-}
-
-function buildNight(ctx) {
-  return buildBuffer(
-    ctx, 16,
-    (w) => dullen(brownFilter(w), 0.04),
-    [[16 / 6, 0.15, 0]],
-    0.28,
-    0.4,
-    (out, sr, safeLen) => {
-      // crickets: a rapid little burst of identical pulses per "chirp"
-      scatterEvents(sr, safeLen, 1.8, 0.5, (t) => {
-        const pulses = 3 + Math.floor(Math.random() * 3);
-        for (let p = 0; p < pulses; p++) {
-          addTone(out, sr, safeLen, t + p * 0.045, 18, 2600 + Math.random() * 200, 0.03);
-        }
-      });
     }
   );
 }
@@ -313,9 +193,11 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.masterGain = null;
-    this.source = null;
+    this.source = null;    // AudioBufferSourceNode — procedural sounds, one-shot per play()
+    this.mediaEl = null;   // HTMLAudioElement — file-based sounds, reused across play()s via mediaCache
     this.currentId = null;
     this.bufferCache = new Map();
+    this.mediaCache = new Map(); // id -> HTMLAudioElement, already wired into masterGain
     this.volume = 0.45;
   }
 
@@ -334,23 +216,50 @@ class SoundEngine {
   getBuffer(id) {
     if (this.bufferCache.has(id)) return this.bufferCache.get(id);
     const def = SOUND_DEFS.find((d) => d.id === id);
-    if (!def) return null;
+    if (!def || !def.build) return null;
     const buf = def.build(this.ctx);
     this.bufferCache.set(id, buf);
     return buf;
   }
 
+  // A file-based sound's <audio> element is created once and routed into
+  // masterGain once (createMediaElementSource throws if called twice on the
+  // same element) — every later play() just replays the same cached element
+  // rather than rebuilding the graph.
+  getMedia(id, def) {
+    if (this.mediaCache.has(id)) return this.mediaCache.get(id);
+    const el = new Audio(def.file);
+    el.loop = true;
+    el.preload = 'auto';
+    const node = this.ctx.createMediaElementSource(el);
+    node.connect(this.masterGain);
+    this.mediaCache.set(id, el);
+    return el;
+  }
+
   play(id) {
     const ctx = this.ensureCtx();
     this.stop();
-    const buffer = this.getBuffer(id);
-    if (!buffer) return;
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    source.connect(this.masterGain);
-    source.start();
-    this.source = source;
+    const def = SOUND_DEFS.find((d) => d.id === id);
+    if (!def) return;
+
+    if (def.file) {
+      const el = this.getMedia(id, def);
+      el.currentTime = 0;
+      // Autoplay can still be blocked outside a user gesture — swallow it,
+      // same best-effort spirit as the rest of the ambient sound engine.
+      el.play().catch(() => {});
+      this.mediaEl = el;
+    } else {
+      const buffer = this.getBuffer(id);
+      if (!buffer) return;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(this.masterGain);
+      source.start();
+      this.source = source;
+    }
     this.currentId = id;
   }
 
@@ -359,6 +268,10 @@ class SoundEngine {
       try { this.source.stop(); } catch (e) { /* already stopped */ }
       this.source.disconnect();
       this.source = null;
+    }
+    if (this.mediaEl) {
+      this.mediaEl.pause();
+      this.mediaEl = null;
     }
     this.currentId = null;
   }
