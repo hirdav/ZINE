@@ -1026,17 +1026,31 @@ html.auth-checking body { visibility: hidden; }
 }
 
 /* Pages that sit below the sticky app-nav (library's upload/browse view,
-   dashboard, forest, analytics, settings) scroll the document normally
-   instead of the landing page's internal-scroll-container trick — simpler,
-   and it's what a sticky nav bar expects.
-   Both html and body must be overridden together: when both explicitly set
-   `overflow`, it's html's value that actually governs viewport scrolling,
-   not body's — overriding only body (as this used to) left html's
-   `overflow: hidden` from the base reset in charge, silently clipping any
-   content taller than one screen with no way to reach it. */
-html.app-html { height: auto; overflow-y: auto; }
-body.app-body { overflow-y: auto; height: auto; min-height: 100%; }
-.app-page { height: auto; min-height: calc(100vh - 53px); overflow: visible; padding-top: 48px; }
+   dashboard, forest, analytics, settings). Rather than lean on the
+   html/body overflow-propagation edge case (whose precedence rules have
+   inconsistent implementation history across engines — and did in fact
+   fail to scroll in practice for some of these pages), body itself is a
+   100vh flex column with the nav as a fixed-size item and the page content
+   as its own explicit, self-contained scroll container underneath — the
+   same proven pattern already used for .dropzone on the landing page,
+   just with a nav bar sharing the column. `min-height: 0` on the flex
+   item is required: flex items default to min-height:auto, which lets
+   them refuse to shrink below their content size and grow the whole page
+   instead of scrolling internally. */
+body.app-body {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+body.app-body .app-nav { flex-shrink: 0; }
+.app-page {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  overflow-y: auto;
+  padding-top: 48px;
+}
 .app-page-title { font-family: Georgia, 'Times New Roman', serif; font-size: 26px; margin: 0 0 6px; color: var(--paper); text-align: center; }
 .app-page-sub { color: var(--muted); font-size: 12.5px; margin: 0 0 32px; text-align: center; }
 
