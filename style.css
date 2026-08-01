@@ -1028,7 +1028,13 @@ html.auth-checking body { visibility: hidden; }
 /* Pages that sit below the sticky app-nav (library's upload/browse view,
    dashboard, forest, analytics, settings) scroll the document normally
    instead of the landing page's internal-scroll-container trick — simpler,
-   and it's what a sticky nav bar expects. */
+   and it's what a sticky nav bar expects.
+   Both html and body must be overridden together: when both explicitly set
+   `overflow`, it's html's value that actually governs viewport scrolling,
+   not body's — overriding only body (as this used to) left html's
+   `overflow: hidden` from the base reset in charge, silently clipping any
+   content taller than one screen with no way to reach it. */
+html.app-html { height: auto; overflow-y: auto; }
 body.app-body { overflow-y: auto; height: auto; min-height: 100%; }
 .app-page { height: auto; min-height: calc(100vh - 53px); overflow: visible; padding-top: 48px; }
 .app-page-title { font-family: Georgia, 'Times New Roman', serif; font-size: 26px; margin: 0 0 6px; color: var(--paper); text-align: center; }
