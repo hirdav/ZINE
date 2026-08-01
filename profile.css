@@ -310,3 +310,16 @@
   .profile-forest-layout { grid-template-columns: 1fr; }
   .analytics-grid { grid-template-columns: 1fr; }
 }
+
+/* scrollbars — scroll stays functional, chrome stays hidden */
+.forest-filter-results, .streak-history-list, .recent-sessions-list, .time-per-doc-list, .growth-timeline {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.forest-filter-results::-webkit-scrollbar,
+.streak-history-list::-webkit-scrollbar,
+.recent-sessions-list::-webkit-scrollbar,
+.time-per-doc-list::-webkit-scrollbar,
+.growth-timeline::-webkit-scrollbar {
+  display: none;
+}
