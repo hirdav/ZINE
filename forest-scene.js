@@ -16,6 +16,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const WORLD_W = 1000;
 const WORLD_H = 620;
 const GROUND_CX = 500, GROUND_CY = 470;
+const ZOOM_MIN = 0.6, ZOOM_MAX = 2.2, ZOOM_STEP = 0.25;
 
 function isWebGLAvailable() {
   try {
@@ -462,6 +463,24 @@ export class MindForestScene {
     this.popover.className = 'forest-popover hidden';
     this.el.appendChild(this.popover);
 
+    this.zoomControls = document.createElement('div');
+    this.zoomControls.className = 'forest-zoom-controls';
+    this.zoomOutBtn = document.createElement('button');
+    this.zoomOutBtn.type = 'button';
+    this.zoomOutBtn.className = 'forest-zoom-btn';
+    this.zoomOutBtn.title = 'Zoom out';
+    this.zoomOutBtn.textContent = '−';
+    this.zoomInBtn = document.createElement('button');
+    this.zoomInBtn.type = 'button';
+    this.zoomInBtn.className = 'forest-zoom-btn';
+    this.zoomInBtn.title = 'Zoom in';
+    this.zoomInBtn.textContent = '+';
+    this.zoomControls.appendChild(this.zoomOutBtn);
+    this.zoomControls.appendChild(this.zoomInBtn);
+    this.el.appendChild(this.zoomControls);
+    this.zoomOutBtn.addEventListener('click', () => this._setZoom(this._zoom - ZOOM_STEP));
+    this.zoomInBtn.addEventListener('click', () => this._setZoom(this._zoom + ZOOM_STEP));
+
     this.itemNodes = new Map(); // id -> { outer, inner, item }
     this.mobileNodes = [];
     this.selectedId = null;
@@ -473,10 +492,16 @@ export class MindForestScene {
     this.season = forestState.getSeason();
     this.fireflies = null;
     this._panX = 0; this._panY = 0;
+    this._zoom = 1;
+    this._activePointers = new Map();
+    this._pinchStartDist = null;
+    this._pinchStartZoom = 1;
 
     this._buildStatic();
     this._buildLeafAndSnowParticles();
     this._wireInteraction();
+    this._applyWorldTransform();
+    this._updateZoomButtons();
 
     this._onVisibility = () => { if (document.hidden) this.stop(); else this.start(); };
     document.addEventListener('visibilitychange', this._onVisibility);
@@ -605,7 +630,7 @@ export class MindForestScene {
     }
   }
 
-  // ---------- interaction: pan background, select/drag items ----------
+  // ---------- interaction: pan background, select/drag items, zoom ----------
   _wireInteraction() {
     let panning = false, dragId = null, moved = false;
     let startClientX = 0, startClientY = 0, startPanX = 0, startPanY = 0;
@@ -620,7 +645,24 @@ export class MindForestScene {
       return { x: p.x, y: p.y };
     };
 
+    const pointerDistance = () => {
+      const pts = [...this._activePointers.values()];
+      if (pts.length < 2) return 1;
+      return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+    };
+
     this.svg.addEventListener('pointerdown', (e) => {
+      this._activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this._activePointers.size === 2) {
+        // second finger down — switch to pinch-zoom, abandon any drag/pan
+        dragId = null; panning = false;
+        this._closePopover();
+        this._pinchStartDist = pointerDistance();
+        this._pinchStartZoom = this._zoom;
+        return;
+      }
+      if (this._activePointers.size > 2) return;
+
       this._closePopover();
       const itemEl = e.target.closest('.fs-item');
       if (itemEl && !itemEl.classList.contains('fs-item-mobile')) {
@@ -644,6 +686,14 @@ export class MindForestScene {
     });
 
     this.svg.addEventListener('pointermove', (e) => {
+      if (this._activePointers.has(e.pointerId)) this._activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (this._activePointers.size === 2 && this._pinchStartDist) {
+        const ratio = pointerDistance() / this._pinchStartDist;
+        this._setZoom(this._pinchStartZoom * ratio);
+        return;
+      }
+
       if (dragId) {
         const dx = e.clientX - startClientX, dy = e.clientY - startClientY;
         if (!moved && Math.hypot(dx, dy) > DRAG_THRESHOLD) moved = true;
@@ -663,11 +713,14 @@ export class MindForestScene {
         const scale = ctm ? ctm.a : 1;
         this._panX = clamp(startPanX + dx / scale, -320, 320);
         this._panY = clamp(startPanY + dy / scale, -180, 140);
-        this.world.setAttribute('transform', `translate(${this._panX.toFixed(1)}, ${this._panY.toFixed(1)})`);
+        this._applyWorldTransform();
       }
     });
 
     const endPointer = (e) => {
+      this._activePointers.delete(e.pointerId);
+      if (this._activePointers.size < 2) this._pinchStartDist = null;
+
       if (dragId) {
         const node = this.itemNodes.get(dragId);
         if (node && moved) {
@@ -682,7 +735,33 @@ export class MindForestScene {
     this.svg.addEventListener('pointerup', endPointer);
     this.svg.addEventListener('pointercancel', endPointer);
 
+    // trackpad pinch surfaces as a ctrl-modified wheel event in every major
+    // browser — hook that without hijacking normal page-scroll wheel input
+    this.svg.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      this._setZoom(this._zoom * (e.deltaY > 0 ? 0.92 : 1.08));
+    }, { passive: false });
+
     this.popover.addEventListener('pointerdown', (e) => e.stopPropagation());
+  }
+
+  _applyWorldTransform() {
+    const cx = WORLD_W / 2, cy = WORLD_H / 2;
+    this.world.setAttribute('transform',
+      `translate(${this._panX.toFixed(1)}, ${this._panY.toFixed(1)}) translate(${cx}, ${cy}) scale(${this._zoom.toFixed(3)}) translate(${-cx}, ${-cy})`);
+  }
+
+  _setZoom(z) {
+    this._zoom = clamp(z, ZOOM_MIN, ZOOM_MAX);
+    this._applyWorldTransform();
+    this._updateZoomButtons();
+  }
+
+  _updateZoomButtons() {
+    if (!this.zoomInBtn) return;
+    this.zoomInBtn.disabled = this._zoom >= ZOOM_MAX - 0.001;
+    this.zoomOutBtn.disabled = this._zoom <= ZOOM_MIN + 0.001;
   }
 
   _selectItem(id, outerEl) {

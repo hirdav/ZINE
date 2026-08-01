@@ -1494,6 +1494,35 @@ body.app-body .app-nav { flex-shrink: 0; }
 .forest-svg:active { cursor: grabbing; }
 .forest-particle-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
+.forest-zoom-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 5;
+}
+.forest-zoom-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: rgba(20,20,20,0.45);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  transition: background .15s ease, opacity .15s ease;
+}
+.forest-zoom-btn:hover:not(:disabled) { background: rgba(20,20,20,0.65); }
+.forest-zoom-btn:disabled { opacity: .35; cursor: default; }
+.forest-canvas-slot-panel .forest-zoom-controls { display: none; }
+
 .fs-item { cursor: grab; }
 .fs-item.fs-item-mobile { cursor: pointer; }
 .fs-item-inner {
