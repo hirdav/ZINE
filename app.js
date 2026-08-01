@@ -8,6 +8,7 @@ import { initCelebrations, maybeShowOnboarding } from './celebrate.js';
 import * as auth from './auth.js';
 import * as cloudSync from './cloud-sync.js';
 import { requireAuth, mountAppNav } from './app-nav.js';
+import { isForestAmbienceMuted, startForestAmbience, stopForestAmbience, toggleForestAmbience } from './forest-ambience.js';
 
 (async () => {
   'use strict';
@@ -75,6 +76,7 @@ import { requireAuth, mountAppNav } from './app-nav.js';
   const forestExploreOverlay = document.getElementById('forestExploreOverlay');
   const forestExploreCanvasSlot = document.getElementById('forestExploreCanvasSlot');
   const forestExploreClose = document.getElementById('forestExploreClose');
+  const forestExploreAmbienceToggle = document.getElementById('forestExploreAmbienceToggle');
 
   const pomodoroToggle = document.getElementById('pomodoroToggle');
   const pomodoroPanel = document.getElementById('pomodoroPanel');
@@ -1043,15 +1045,24 @@ import { requireAuth, mountAppNav } from './app-nav.js';
   // drag things to a new spot — the small panel preview isn't a comfortable
   // place to do that precisely
   function isForestExploreOpen() { return !forestExploreOverlay.classList.contains('hidden'); }
+  function renderForestAmbienceBtn() {
+    const muted = isForestAmbienceMuted();
+    forestExploreAmbienceToggle.textContent = muted ? '🔇' : '🔊';
+    forestExploreAmbienceToggle.title = muted ? 'Unmute forest sounds' : 'Mute forest sounds';
+    forestExploreAmbienceToggle.classList.toggle('active', !muted);
+  }
   function openForestExplore() {
     ensureForestScene();
     forestExploreOverlay.classList.remove('hidden');
     moveForestCanvasTo(forestExploreCanvasSlot);
     forestScene.start();
     updateForestUI();
+    renderForestAmbienceBtn();
+    startForestAmbience();
   }
   function closeForestExplore() {
     forestExploreOverlay.classList.add('hidden');
+    stopForestAmbience();
     if (isForestPanelOpen()) {
       moveForestCanvasTo(forestPanelCanvasSlot);
     } else if (forestScene) {
@@ -1060,13 +1071,17 @@ import { requireAuth, mountAppNav } from './app-nav.js';
   }
   forestExploreBtn.addEventListener('click', (e) => { e.stopPropagation(); openForestExplore(); });
   forestExploreClose.addEventListener('click', () => closeForestExplore());
-  forestExploreOverlay.addEventListener('click', (e) => { if (e.target === forestExploreOverlay) closeForestExplore(); });
-  // the explore modal can be open from the landing page too, where the
-  // reader's (reader-only) keydown handler never runs — so it needs its own
-  // always-on Escape handling rather than sharing the reader's Escape case
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isForestExploreOpen()) closeForestExplore();
+  forestExploreAmbienceToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleForestAmbience();
+    renderForestAmbienceBtn();
   });
+  forestExploreOverlay.addEventListener('click', (e) => { if (e.target === forestExploreOverlay) closeForestExplore(); });
+  // Escape for the explore modal is handled inside the main reader keydown
+  // listener below, not a separate window listener here — two independent
+  // Escape listeners would race: whichever closes the modal first would
+  // invalidate the other's isForestExploreOpen() check before it runs,
+  // letting it fall through to closeReader() and close the whole book too.
 
   forestState.onForestEvent((event) => {
     updateForestUI();
@@ -1367,7 +1382,10 @@ import { requireAuth, mountAppNav } from './app-nav.js';
 
   window.addEventListener('keydown', (e) => {
     if (readerEl.classList.contains('hidden')) return;
-    if (isForestExploreOpen()) return; // the explore modal owns keyboard input while open
+    if (isForestExploreOpen()) {
+      if (e.key === 'Escape') closeForestExplore();
+      return; // the explore modal owns every other key while open
+    }
     switch (e.key) {
       case 'ArrowRight':
       case 'PageDown':
