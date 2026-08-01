@@ -154,7 +154,7 @@ export async function loadProfileData() {
       ...s,
       fileName: (byDoc.get(s.document_id) || {}).fileName || s.file_name || 'untitled',
     })),
-    growthTimeline: events.slice(0, 80).map((ev) => ({ ...ev, ...describeGrowthEvent(ev) })),
+    growthTimeline: events.map((ev) => ({ ...ev, ...describeGrowthEvent(ev) })),
     heatmapDays,
     streakRuns,
     consistencyPct,

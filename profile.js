@@ -37,6 +37,9 @@ import * as forestState from './forest-state.js';
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  const TIMELINE_PAGE_SIZE = 8;
+  let timelinePage = 0;
+
   const data = await loadProfileData();
   if (!data) return;
 
@@ -109,17 +112,43 @@ import * as forestState from './forest-state.js';
   // ---------- Growth Timeline ----------
   function renderTimeline(data) {
     const el = document.getElementById('growthTimelineList');
-    el.innerHTML = data.growthTimeline.length
-      ? data.growthTimeline.map((ev) => `
+    const pager = document.getElementById('growthTimelinePager');
+    const events = data.growthTimeline;
+
+    if (!events.length) {
+      el.innerHTML = '<p class="analytics-card-hint">your growth timeline starts with your next reading session</p>';
+      pager.classList.add('hidden');
+      return;
+    }
+
+    const totalPages = Math.ceil(events.length / TIMELINE_PAGE_SIZE);
+    timelinePage = Math.max(0, Math.min(timelinePage, totalPages - 1));
+    const start = timelinePage * TIMELINE_PAGE_SIZE;
+    const pageEvents = events.slice(start, start + TIMELINE_PAGE_SIZE);
+
+    el.innerHTML = pageEvents.map((ev) => `
           <div class="timeline-item timeline-${ev.kind}">
             <span class="timeline-icon">${ev.icon}</span>
             <div class="timeline-body">
               <div class="timeline-text">${esc(ev.text)}${ev.growth_value > 0 ? ` <span class="timeline-gp">+${Math.round(ev.growth_value)} gp</span>` : ''}</div>
               <div class="timeline-meta">${esc(ev.file_name || '')}${ev.file_name ? ' · ' : ''}${fmtDateTime(ev.created_at)}</div>
             </div>
-          </div>`).join('')
-      : '<p class="analytics-card-hint">your growth timeline starts with your next reading session</p>';
+          </div>`).join('');
+
+    pager.classList.toggle('hidden', totalPages <= 1);
+    document.getElementById('timelinePageLabel').textContent = `${timelinePage + 1} / ${totalPages}`;
+    document.getElementById('timelinePrevBtn').disabled = timelinePage === 0;
+    document.getElementById('timelineNextBtn').disabled = timelinePage === totalPages - 1;
   }
+
+  document.getElementById('timelinePrevBtn').addEventListener('click', () => {
+    timelinePage -= 1;
+    renderTimeline(data);
+  });
+  document.getElementById('timelineNextBtn').addEventListener('click', () => {
+    timelinePage += 1;
+    renderTimeline(data);
+  });
 
   // ---------- Achievements ----------
   function renderAchievements(data) {

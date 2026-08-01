@@ -227,9 +227,15 @@
   gap: 4px;
   border-left: 2px solid var(--line);
   padding-left: 20px;
-  max-height: 480px;
-  overflow-y: auto;
 }
+.timeline-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+.timeline-pager .icon-btn:disabled { opacity: .35; cursor: default; border-color: var(--line); color: var(--muted); }
 .timeline-item {
   position: relative;
   display: flex;
@@ -312,14 +318,13 @@
 }
 
 /* scrollbars — scroll stays functional, chrome stays hidden */
-.forest-filter-results, .streak-history-list, .recent-sessions-list, .time-per-doc-list, .growth-timeline {
+.forest-filter-results, .streak-history-list, .recent-sessions-list, .time-per-doc-list {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 .forest-filter-results::-webkit-scrollbar,
 .streak-history-list::-webkit-scrollbar,
 .recent-sessions-list::-webkit-scrollbar,
-.time-per-doc-list::-webkit-scrollbar,
-.growth-timeline::-webkit-scrollbar {
+.time-per-doc-list::-webkit-scrollbar {
   display: none;
 }
