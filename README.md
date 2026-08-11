@@ -51,7 +51,7 @@ Then open `http://localhost:5500`. Any other static file server works too (`npx 
 - **`app.js`** — the reader's orchestrator: file loading, PDF rendering, text pagination, the page-flip state machine (drag + hover), thumbnails, zoom, keyboard shortcuts, and wiring for the Pomodoro/sound/forest panels
 - **`forest.html` / `forest.js`** — the full explorable Mind Forest, with a document/date-range filter over the growth-event history
 - **`analytics.html` / `analytics.js`** — the calendar heatmap, streak history, recent sessions, time-per-document, and consistency/focus-score metrics
-- **`profile.html` / `profile.js` / `profile.css`** — identity, lifetime stats, your library, growth timeline, and achievements
+- **`profile.html` / `profile.js` / `profile.css`** — identity, lifetime stats, your library, a paginated growth timeline (8 events per page), and achievements
 - **`settings.html` / `settings.js` / `settings.css`** — default ambient volume, replaying the first-run onboarding, sign-out
 
 **Shared engines** (used by one or more of the pages above)
